@@ -1,22 +1,22 @@
-# 🌱 SproutSense - AI-Powered Student Assessment Platform
+# SproutSense - AI-Powered Student Assessment Platform
 
-**Comprehensive student assessment and analysis platform for teachers and students with AI-powered insights.**
+Comprehensive student assessment and analysis platform for teachers and students with AI-powered insights.
 
 SproutSense is a modern web application that enables teachers to assess students and provides AI-powered analysis for personalized learning insights, career guidance, and development plans. The platform supports two distinct assessment types based on grade levels and provides comprehensive analytics dashboards.
 
-## ✨ Key Features
+## Key Features
 
 ### For Teachers
-- 📝 **Dual Assessment Types**:
+- **Dual Assessment Types**:
   - **Questionnaire Assessment** (LKG - Grade 2): Rate students on various parameters (1-5 scale)
   - **Marks Assessment** (Grade 6+): Enter subject marks and assess 5 key factors (conceptual understanding, recall, logical reasoning, attempts bonus questions, effort)
-- 🔑 **Unique Report Codes**: Generate unique codes for each assessment that students can use to access their reports
-- 📊 **Comprehensive Dashboard**: View all student reports, track assessment history, and manage multiple students
-- 🤖 **AI-Powered Analysis**: Automatic analysis of student performance with detailed insights
+- **Unique Report Codes**: Generate unique codes for each assessment that students can use to access their reports
+- **Comprehensive Dashboard**: View all student reports, track assessment history, and manage multiple students
+- **AI-Powered Analysis**: Automatic analysis of student performance with detailed insights
 
 ### For Students
-- 🔐 **Simple Access**: Enter name and report code provided by teacher to access reports
-- 📈 **Detailed Analytics**: View comprehensive analysis including:
+- **Simple Access**: Enter name and report code provided by teacher to access reports
+- **Detailed Analytics**: View comprehensive analysis including:
   - Overall performance (strengths & improvement areas)
   - Subject-wise performance breakdown
   - Career recommendations with suitability scores
@@ -24,9 +24,9 @@ SproutSense is a modern web application that enables teachers to assess students
   - Study recommendations and strategies
   - Learning profile insights
   - Development plan (immediate actions, short-term goals, long-term objectives)
-- 📱 **Responsive Design**: Access reports on any device
+- **Responsive Design**: Access reports on any device
 
-## 🎯 Assessment Types
+## Assessment Types
 
 ### Early Childhood (LKG - Grade 2)
 Teachers fill out a questionnaire rating students on various parameters using a 1-5 scale. The system analyzes responses and provides insights into:
@@ -56,7 +56,7 @@ The system sends this data to an AI analysis API that provides:
 - Personalized study recommendations
 - Development plans
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - Node.js 18+ and npm
@@ -121,7 +121,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to see the app.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 **Frontend:**
 - **Next.js 16.0.3** - React framework with App Router and Turbopack
@@ -153,7 +153,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 - **Resend 6.4.2** - Email delivery service
 - **@vercel/analytics 1.5.0** - Analytics
 
-## 📊 How It Works
+## How It Works
 
 ### User Flow
 
@@ -191,7 +191,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 Teacher Input → Convex Database → AI Analysis API → Stored Results → Student Dashboard
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 src/
@@ -233,7 +233,7 @@ convex/
 └── _generated/                    # Auto-generated Convex types
 ```
 
-## 🎨 Design Features
+## Design Features
 
 - **Modern Dark Theme**: Professional dark UI with WebGL shader backgrounds
 - **Shader Effects**: Swirl and ChromaFlow shaders for dynamic backgrounds
@@ -242,14 +242,14 @@ convex/
 - **Responsive Design**: Works seamlessly on mobile, tablet, and desktop
 - **Smooth Animations**: Framer Motion for fluid transitions
 
-## 🔐 Security & Privacy
+## Security & Privacy
 
 - **Clerk Authentication**: Secure user authentication and session management
 - **Convex Security**: Row-level security and type-safe database operations
 - **API Proxy**: Server-side API calls prevent CORS issues and protect API keys
 - **Data Isolation**: Students can only access reports linked to their report code
 
-## 🚢 Deployment
+## Deployment
 
 ### Deploy to Vercel
 
@@ -264,7 +264,7 @@ convex/
 
 Ensure all environment variables from `.env.local` are set in your Vercel project settings.
 
-## 📝 API Integration
+## API Integration
 
 The application integrates with an external AI analysis API:
 
@@ -275,7 +275,7 @@ The application integrates with an external AI analysis API:
 
 See [API_DOCS.md](./API_DOCS.md) for detailed API documentation.
 
-## 🎯 User Roles
+## User Roles
 
 ### Teacher
 - Create assessments for students
@@ -289,7 +289,7 @@ See [API_DOCS.md](./API_DOCS.md) for detailed API documentation.
 - Track assessment history
 - Access personalized recommendations
 
-## 📊 Assessment Data Structure
+## Assessment Data Structure
 
 ### Questionnaire Assessment (LKG-Grade 2)
 ```typescript
@@ -333,15 +333,15 @@ See [API_DOCS.md](./API_DOCS.md) for detailed API documentation.
 }
 ```
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## 📝 License
+## License
 
 MIT License - feel free to use this for educational and research purposes.
 
-## ⚠️ Important Disclaimer
+## Important Disclaimer
 
 **This is not a medical or diagnostic tool.** The assessments and AI analysis are for educational and informational purposes only. If you have concerns about a student's learning, please consult with qualified educational professionals, psychologists, or pediatricians for comprehensive evaluation.
 
