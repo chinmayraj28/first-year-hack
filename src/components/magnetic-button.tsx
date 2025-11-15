@@ -8,6 +8,7 @@ interface MagneticButtonProps {
   variant?: "primary" | "secondary" | "ghost"
   size?: "default" | "lg"
   onClick?: () => void
+  disabled?: boolean
 }
 
 export function MagneticButton({
@@ -16,6 +17,7 @@ export function MagneticButton({
   variant = "primary",
   size = "default",
   onClick,
+  disabled = false,
 }: MagneticButtonProps) {
   const variants = {
     primary:
@@ -33,9 +35,11 @@ export function MagneticButton({
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       className={`
         relative overflow-hidden rounded-full font-medium
         transition-transform transition-colors duration-200 ease-out
+        disabled:opacity-50 disabled:cursor-not-allowed
         ${variants[variant]}
         ${sizes[size]}
         ${className}
