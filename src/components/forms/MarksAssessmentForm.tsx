@@ -199,12 +199,11 @@ export default function MarksAssessmentForm({
                   type="number"
                   min="0"
                   max={subject.totalMarks}
-                  value={subject.obtainedMarks || ''}
+                  value={subject.obtainedMarks === 0 ? '' : subject.obtainedMarks}
                   onChange={(e) => {
                     const inputValue = e.target.value;
-                    // Allow empty string for clearing - don't update state yet
-                    if (inputValue === '' || inputValue === '-') {
-                      // Temporarily allow empty or just minus sign for better UX
+                    // Allow empty string for clearing
+                    if (inputValue === '') {
                       updateSubject(index, 'obtainedMarks', 0);
                       return;
                     }
@@ -221,7 +220,7 @@ export default function MarksAssessmentForm({
                     updateSubject(index, 'obtainedMarks', clampedValue);
                   }}
                   onKeyDown={(e) => {
-                    // Prevent negative sign
+                    // Prevent negative sign, 'e', 'E', and '+' keys
                     if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
                       e.preventDefault();
                     }
