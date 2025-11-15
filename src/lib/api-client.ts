@@ -37,15 +37,113 @@ export interface AdvancedAnalysisRequest {
 }
 
 /**
- * Questionnaire data for LKG-Grade 2
+ * Questionnaire data for LKG-Grade 2 (Early Childhood)
  */
 export interface QuestionnaireData {
   studentName: string;
+  age?: number;
   grade: string;
   responses: Array<{
     question: string;
     score: number; // 1-5
   }>;
+}
+
+/**
+ * Call questionnaire analysis API for Early Childhood students (below 6th grade)
+ * Uses /api/v1/analysis/game-based endpoint with questionnaire format
+ */
+export async function analyzeQuestionnaireAssessment(
+  request: QuestionnaireData
+): Promise<ApiResponse<any>> {
+  try {
+    // Generate a studentId if not provided (API requires it)
+    const studentId = `student-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Extract age from grade if not provided (estimate based on grade)
+    let age = request.age;
+    if (!age) {
+      const gradeNum = extractGradeNumber(request.grade);
+      if (gradeNum !== null) {
+        age = gradeNum + 5; // Rough estimate: grade + 5 years
+      } else {
+        // For LKG/UKG, estimate age
+        if (request.grade.toLowerCase().includes('lkg')) age = 4;
+        else if (request.grade.toLowerCase().includes('ukg')) age = 5;
+        else age = 6; // Default for Grade 1-2
+      }
+    }
+
+    // Convert questionnaire responses to API format
+    // The API expects gameResults and answers format
+    // We'll map questionnaire scores to game-like results
+    const apiRequest = {
+      studentName: request.studentName,
+      age: age,
+      grade: extractGradeNumber(request.grade)?.toString() || request.grade.replace(/[^0-9]/g, '') || '1',
+      gameResults: request.responses.map((response, index) => ({
+        game: `Questionnaire Item ${index + 1}`,
+        score: (response.score / 5) * 100, // Convert 1-5 scale to 0-100
+        accuracy: (response.score / 5) * 100,
+        reactionTime: 0, // Not applicable for questionnaire
+        attempts: 1,
+        timeSpent: 0,
+        mistakes: response.score < 3 ? [{
+          type: 'assessment',
+          description: `Score below average for: ${response.question}`
+        }] : []
+      })),
+      answers: request.responses.map((response) => ({
+        subject: 'Early Childhood Assessment',
+        topic: 'Questionnaire',
+        question: response.question,
+        answer: `${response.score}/5`
+      }))
+    };
+
+    console.log('[API] Calling questionnaire analysis endpoint via proxy:', API_PROXY_URL);
+    console.log('[API] Questionnaire request payload:', JSON.stringify(apiRequest, null, 2));
+
+    // Use Next.js API route as proxy, but we need to route to game-based endpoint
+    // Update proxy to handle questionnaire requests
+    const response = await fetch('/api/analyze/questionnaire', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(apiRequest),
+    });
+
+    console.log('[API] Questionnaire response status:', response.status, response.statusText);
+
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        const text = await response.text();
+        errorData = { error: text || `HTTP ${response.status}: ${response.statusText}` };
+      }
+      console.error('[API] Questionnaire error response:', errorData);
+      return {
+        success: false,
+        error: errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`,
+      };
+    }
+
+    const data = await response.json();
+    console.log('[API] Questionnaire success response:', data);
+    return {
+      success: true,
+      data,
+    };
+  } catch (error: any) {
+    console.error('[API] Questionnaire fetch error:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to call questionnaire analysis API',
+    };
+  }
 }
 
 /**

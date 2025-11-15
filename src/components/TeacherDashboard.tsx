@@ -94,17 +94,113 @@ export default function TeacherDashboard({
 
   const handleQuestionnaireSubmit = async (data: { questionnaireData: any[] }) => {
     try {
-      await saveReport({
-        teacherId: userId,
+      console.log('[TeacherDashboard] Submitting questionnaire:', {
         studentName: studentName.trim(),
         grade: grade.trim(),
         questionnaireData: data.questionnaireData,
       });
 
+      // Call API for questionnaire analysis
+      const { analyzeQuestionnaireAssessment } = await import('@/lib/api-client');
+      const apiResult = await analyzeQuestionnaireAssessment({
+        studentName: studentName.trim(),
+        grade: grade.trim(),
+        responses: data.questionnaireData.map(item => ({
+          question: item.question,
+          score: item.score,
+        })),
+      });
+
+      console.log('[TeacherDashboard] API result:', apiResult);
+
+      // Extract display data from API response
+      let domainResults: any[] = [];
+      let overallSignal: string | undefined;
+      let results: any[] = [];
+
+      if (apiResult.success && apiResult.data) {
+        const apiData = apiResult.data.data || apiResult.data;
+        
+        // Map API response to domain results format
+        if (apiData.skillsets) {
+          domainResults = Object.entries(apiData.skillsets).map(([domain, score]: [string, any]) => ({
+            domain: domain.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+            emoji: getDomainEmoji(domain),
+            signal: getSignalFromScore(score),
+            feedback: getDomainFeedback(domain, score),
+            metrics: {
+              accuracy: score,
+              avgReactionTime: 0,
+              falseClicks: 0,
+              retries: 0,
+            },
+          }));
+        }
+
+        // Determine overall signal from strengths/weaknesses
+        if (apiData.strengths && apiData.weaknesses) {
+          const strengthCount = apiData.strengths.length;
+          const weaknessCount = apiData.weaknesses.length;
+          if (strengthCount > weaknessCount * 1.5) {
+            overallSignal = 'green';
+          } else if (weaknessCount > strengthCount * 1.5) {
+            overallSignal = 'red';
+          } else {
+            overallSignal = 'yellow';
+          }
+        }
+
+        results = domainResults;
+      }
+
+      // Save report with API analysis result
+      await saveReport({
+        teacherId: userId,
+        studentName: studentName.trim(),
+        grade: grade.trim(),
+        questionnaireData: data.questionnaireData,
+        apiAnalysisResult: apiResult.success ? apiResult.data : { error: apiResult.error },
+        domainResults,
+        results,
+        overallSignal,
+      });
+
       resetForm();
       onRefresh();
     } catch (error: any) {
+      console.error('[TeacherDashboard] Error submitting questionnaire:', error);
       alert(`Failed to save report: ${error.message || 'Unknown error'}`);
+    }
+  };
+
+  // Helper functions for domain mapping
+  const getDomainEmoji = (domain: string): string => {
+    const emojiMap: Record<string, string> = {
+      cognitive: '🧠',
+      linguistic: '💬',
+      mathematical: '🔢',
+      visual_spatial: '👁️',
+      attention_focus: '🎯',
+      memory: '💾',
+      processing_speed: '⚡',
+    };
+    return emojiMap[domain] || '📊';
+  };
+
+  const getSignalFromScore = (score: number): string => {
+    if (score >= 80) return 'green';
+    if (score >= 60) return 'yellow';
+    return 'red';
+  };
+
+  const getDomainFeedback = (domain: string, score: number): string => {
+    const domainName = domain.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
+    if (score >= 80) {
+      return `Strong performance in ${domainName}. The student demonstrates excellent skills in this area.`;
+    } else if (score >= 60) {
+      return `Moderate performance in ${domainName}. There's room for improvement with targeted support.`;
+    } else {
+      return `Needs attention in ${domainName}. Consider additional support and practice in this area.`;
     }
   };
 

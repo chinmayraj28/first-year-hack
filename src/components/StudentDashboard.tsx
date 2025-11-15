@@ -247,6 +247,163 @@ export default function StudentDashboard({
                               </div>
                             </div>
                           ))}
+                          
+                          {/* API Analysis Results for Questionnaire */}
+                          {test.apiAnalysisResult && (() => {
+                            const apiData = test.apiAnalysisResult?.data?.data || test.apiAnalysisResult?.data;
+                            if (!apiData) return null;
+
+                            return (
+                              <div className="mt-6 space-y-4">
+                                {/* Strengths & Weaknesses */}
+                                {(apiData.strengths || apiData.weaknesses) && (
+                                  <div className="p-4 bg-background/30 rounded-lg border border-border/40">
+                                    <h4 className="text-lg font-semibold text-white mb-3">Overall Analysis</h4>
+                                    {apiData.strengths && apiData.strengths.length > 0 && (
+                                      <div className="mb-3">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <TrendingUp className="h-4 w-4 text-emerald-400" />
+                                          <span className="font-semibold text-emerald-400">Strengths</span>
+                                        </div>
+                                        <ul className="list-disc list-inside space-y-1 text-sm text-white/80 ml-4">
+                                          {apiData.strengths.map((s: string, idx: number) => (
+                                            <li key={idx}>{s}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                    {apiData.weaknesses && apiData.weaknesses.length > 0 && (
+                                      <div>
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <Activity className="h-4 w-4 text-amber-400" />
+                                          <span className="font-semibold text-amber-400">Areas for Improvement</span>
+                                        </div>
+                                        <ul className="list-disc list-inside space-y-1 text-sm text-white/80 ml-4">
+                                          {apiData.weaknesses.map((w: string, idx: number) => (
+                                            <li key={idx}>{w}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Skillsets */}
+                                {apiData.skillsets && (
+                                  <div className="p-4 bg-background/30 rounded-lg border border-border/40">
+                                    <h4 className="text-lg font-semibold text-white mb-3">Skill Assessment</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                      {Object.entries(apiData.skillsets).map(([skill, score]: [string, any]) => (
+                                        <div key={skill} className="p-3 bg-background/20 rounded border border-border/30">
+                                          <div className="text-sm text-white/70 mb-1">
+                                            {skill.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                                          </div>
+                                          <div className="text-lg font-semibold text-white">{score}%</div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Learning Profile */}
+                                {apiData.learningProfile && (
+                                  <div className="p-4 bg-background/30 rounded-lg border border-border/40">
+                                    <h4 className="text-lg font-semibold text-white mb-3">Learning Profile</h4>
+                                    <div className="space-y-2 text-sm">
+                                      {apiData.learningProfile.learning_style && (
+                                        <div>
+                                          <span className="text-white/60">Learning Style: </span>
+                                          <span className="text-white">{apiData.learningProfile.learning_style}</span>
+                                        </div>
+                                      )}
+                                      {apiData.learningProfile.preferred_pace && (
+                                        <div>
+                                          <span className="text-white/60">Preferred Pace: </span>
+                                          <span className="text-white">{apiData.learningProfile.preferred_pace}</span>
+                                        </div>
+                                      )}
+                                      {apiData.learningProfile.attention_span && (
+                                        <div>
+                                          <span className="text-white/60">Attention Span: </span>
+                                          <span className="text-white">{apiData.learningProfile.attention_span}</span>
+                                        </div>
+                                      )}
+                                      {apiData.learningProfile.motivation_factors && apiData.learningProfile.motivation_factors.length > 0 && (
+                                        <div>
+                                          <span className="text-white/60">Motivation Factors: </span>
+                                          <span className="text-white">{apiData.learningProfile.motivation_factors.join(', ')}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Development Plan */}
+                                {apiData.developmentPlan && (
+                                  <div className="p-4 bg-background/30 rounded-lg border border-border/40">
+                                    <h4 className="text-lg font-semibold text-white mb-3">Development Plan</h4>
+                                    {apiData.developmentPlan.immediate_actions && 
+                                     apiData.developmentPlan.immediate_actions.length > 0 && (
+                                      <div className="mb-3">
+                                        <span className="text-sm font-semibold text-white mb-2 block">Immediate Actions:</span>
+                                        <ul className="list-disc list-inside space-y-1 text-sm text-white/80 ml-4">
+                                          {apiData.developmentPlan.immediate_actions.map((action: string, idx: number) => (
+                                            <li key={idx}>{action}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                    {apiData.developmentPlan.short_term_goals && 
+                                     apiData.developmentPlan.short_term_goals.length > 0 && (
+                                      <div className="mb-3">
+                                        <span className="text-sm font-semibold text-white mb-2 block">Short-term Goals:</span>
+                                        <ul className="list-disc list-inside space-y-1 text-sm text-white/80 ml-4">
+                                          {apiData.developmentPlan.short_term_goals.map((goal: string, idx: number) => (
+                                            <li key={idx}>{goal}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                    {apiData.developmentPlan.long_term_objectives && 
+                                     apiData.developmentPlan.long_term_objectives.length > 0 && (
+                                      <div>
+                                        <span className="text-sm font-semibold text-white mb-2 block">Long-term Objectives:</span>
+                                        <ul className="list-disc list-inside space-y-1 text-sm text-white/80 ml-4">
+                                          {apiData.developmentPlan.long_term_objectives.map((obj: string, idx: number) => (
+                                            <li key={idx}>{obj}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Subject Recommendations */}
+                                {apiData.subjectRecommendations && apiData.subjectRecommendations.length > 0 && (
+                                  <div className="p-4 bg-background/30 rounded-lg border border-border/40">
+                                    <h4 className="text-lg font-semibold text-white mb-3">Subject Recommendations</h4>
+                                    <div className="space-y-2">
+                                      {apiData.subjectRecommendations.map((rec: any, idx: number) => (
+                                        <div key={idx} className="p-3 bg-background/20 rounded border border-border/30">
+                                          <div className="font-semibold text-white">{rec.subject}</div>
+                                          {rec.focus_areas && rec.focus_areas.length > 0 && (
+                                            <div className="text-sm text-white/70 mt-1">
+                                              Focus: {rec.focus_areas.join(', ')}
+                                            </div>
+                                          )}
+                                          {rec.priority && (
+                                            <Badge className="mt-1 bg-primary/20 text-primary border-primary/30 text-xs">
+                                              {rec.priority} Priority
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
 
