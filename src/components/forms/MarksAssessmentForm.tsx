@@ -198,8 +198,31 @@ export default function MarksAssessmentForm({
                 <Input
                   type="number"
                   min="0"
-                  value={subject.obtainedMarks}
-                  onChange={(e) => updateSubject(index, 'obtainedMarks', parseFloat(e.target.value) || 0)}
+                  max={subject.totalMarks}
+                  value={subject.obtainedMarks === 0 ? '' : subject.obtainedMarks}
+                  onChange={(e) => {
+                    const inputValue = e.target.value;
+                    // Allow empty string for clearing
+                    if (inputValue === '') {
+                      updateSubject(index, 'obtainedMarks', 0);
+                      return;
+                    }
+                    const numValue = parseFloat(inputValue);
+                    // Check if it's a valid number
+                    if (isNaN(numValue)) {
+                      return; // Don't update if invalid
+                    }
+                    // Ensure non-negative and not more than total marks
+                    const clampedValue = Math.max(0, Math.min(numValue, subject.totalMarks));
+                    updateSubject(index, 'obtainedMarks', clampedValue);
+                  }}
+                  onBlur={(e) => {
+                    // On blur, ensure we have a valid number (default to 0 if empty)
+                    const value = e.target.value;
+                    if (value === '' || isNaN(parseFloat(value))) {
+                      updateSubject(index, 'obtainedMarks', 0);
+                    }
+                  }}
                   className="bg-background/30 border-border/40 text-white placeholder:text-white/50"
                 />
               </div>
