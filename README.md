@@ -109,9 +109,14 @@ Quick setup:
 
 ### 5. Set Up External AI Analysis API
 
-The application integrates with an external AI analysis API. Ensure the API endpoint is accessible:
-- Base URL: `https://7fg18gc3-8000.uks1.devtunnels.ms/api/v1`
-- The API is accessed via Next.js API proxy routes to handle CORS
+The application integrates with an external AI analysis API:
+- **Base URL**: `https://7fg18gc3-8000.uks1.devtunnels.ms/api/v1`
+- **Endpoints**:
+  - `/api/v1/analysis/advanced` - For Grade 6+ marks assessments
+  - `/api/v1/analysis/game-based` - For LKG-Grade 2 questionnaire assessments
+  - `/api/v1/health` - Health check endpoint
+- The API is accessed via Next.js API proxy routes (`/api/analyze` and `/api/analyze/questionnaire`) to handle CORS
+- API key is configured via `NEXT_PUBLIC_API_KEY` environment variable
 
 ### 6. Run the Development Server
 
@@ -266,12 +271,18 @@ Ensure all environment variables from `.env.local` are set in your Vercel projec
 
 ## API Integration
 
-The application integrates with an external AI analysis API:
+The application integrates with the SproutSense AI Analysis Backend:
 
-- **Endpoint**: `/api/v1/analysis/advanced` (for Grade 6+)
-- **Endpoint**: `/api/v1/analysis/game-based` (for LKG-Grade 2)
-- **Authentication**: API key via `X-API-Key` header
-- **Proxy**: Requests are proxied through Next.js API routes to handle CORS
+- **Base URL**: `https://7fg18gc3-8000.uks1.devtunnels.ms/api/v1`
+- **Endpoints**:
+  - `/api/v1/analysis/advanced` - Advanced analysis for Grade 6+ students
+  - `/api/v1/analysis/game-based` - Game-based analysis for LKG-Grade 2 students
+  - `/api/v1/health` - Health check endpoint
+- **Authentication**: API key via `X-API-Key` header (configured via `NEXT_PUBLIC_API_KEY`)
+- **Proxy Routes**: 
+  - `/api/analyze` - Proxies to `/api/v1/analysis/advanced`
+  - `/api/analyze/questionnaire` - Proxies to `/api/v1/analysis/game-based`
+- **CORS Handling**: All external API calls are proxied through Next.js API routes to avoid CORS issues
 
 See [API_DOCS.md](./API_DOCS.md) for detailed API documentation.
 
