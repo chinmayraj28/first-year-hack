@@ -2,6 +2,22 @@ import { GameMetrics, SignalLevel } from '@/types/game';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from 'convex/_generated/api';
 
+// Type assertion for Convex API functions
+type ConvexApi = {
+  functions: {
+    saveTestResults: any;
+    getReportByCode: any;
+    linkReportToStudent: any;
+    getTestResults: any;
+    getStudentReports: any;
+    getReportsByCode: any;
+    generateUploadUrl: any;
+    getFileUrl: any;
+  };
+};
+
+const convexApi = api as unknown as ConvexApi;
+
 export function evaluateDomain({
   accuracy,
   avgReactionTime,
@@ -69,48 +85,48 @@ export function generateReportCode(): string {
 
 // Hook-based functions for React components
 export function useSaveReport() {
-  return useMutation(api.functions.saveTestResults);
+  return useMutation(convexApi.functions.saveTestResults);
 }
 
 export function useGetReportByCode(reportCode: string | null) {
   return useQuery(
-    api.functions.getReportByCode,
+    convexApi.functions.getReportByCode,
     reportCode ? { reportCode } : 'skip'
   );
 }
 
 export function useLinkReportToStudent() {
-  return useMutation(api.functions.linkReportToStudent);
+  return useMutation(convexApi.functions.linkReportToStudent);
 }
 
 export function useGetTeacherReports(teacherId: string | null) {
   return useQuery(
-    api.functions.getTestResults,
+    convexApi.functions.getTestResults,
     teacherId ? { teacherId } : 'skip'
   );
 }
 
 export function useGetStudentReports(studentId: string | null) {
   return useQuery(
-    api.functions.getStudentReports,
+    convexApi.functions.getStudentReports,
     studentId ? { studentId } : 'skip'
   );
 }
 
 export function useGetReportsByCode(reportCode: string | null) {
   return useQuery(
-    api.functions.getReportsByCode,
+    convexApi.functions.getReportsByCode,
     reportCode ? { reportCode } : 'skip'
   );
 }
 
 export function useGenerateUploadUrl() {
-  return useMutation(api.functions.generateUploadUrl);
+  return useMutation(convexApi.functions.generateUploadUrl);
 }
 
 export function useGetFileUrl(storageId: string | undefined | null) {
   return useQuery(
-    api.functions.getFileUrl,
+    convexApi.functions.getFileUrl,
     storageId ? { storageId: storageId as any } : 'skip'
   );
 }
