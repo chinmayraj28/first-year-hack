@@ -48,28 +48,29 @@ export default function Home() {
 
   // Add timeout fallback in case Clerk gets stuck
   useEffect(() => {
+    if (appState !== 'loading' || isLoaded) return;
+    
     const timeout = setTimeout(() => {
-      if (appState === 'loading' && !isLoaded) {
-        console.warn('Clerk loading timeout - proceeding anyway');
-        // If Clerk hasn't loaded after 5 seconds, proceed anyway
-        const currentUser = user;
-        if (currentUser?.id) {
-          const userId = currentUser.id;
-          const teacherProfile = getTeacherProfile(userId);
-          const studentProfile = getStudentProfile(userId);
+      console.warn('Clerk loading timeout - proceeding anyway');
+      // If Clerk hasn't loaded after 5 seconds, proceed anyway
+      // Capture user at the time of timeout execution with explicit type checking
+      const currentUser = user;
+      if (currentUser !== null && currentUser !== undefined && typeof currentUser === 'object' && 'id' in currentUser) {
+        const userId = (currentUser as { id: string }).id;
+        const teacherProfile = getTeacherProfile(userId);
+        const studentProfile = getStudentProfile(userId);
 
-          if (teacherProfile) {
-            setUserType('teacher');
-            setAppState(teacherProfile.acceptedPrivacyPolicy ? 'dashboard' : 'onboarding');
-          } else if (studentProfile) {
-            setUserType('student');
-            setAppState(studentProfile.acceptedPrivacyPolicy ? 'dashboard' : 'onboarding');
-          } else {
-            setAppState('onboarding');
-          }
+        if (teacherProfile) {
+          setUserType('teacher');
+          setAppState(teacherProfile.acceptedPrivacyPolicy ? 'dashboard' : 'onboarding');
+        } else if (studentProfile) {
+          setUserType('student');
+          setAppState(studentProfile.acceptedPrivacyPolicy ? 'dashboard' : 'onboarding');
         } else {
-          setAppState('landing');
+          setAppState('onboarding');
         }
+      } else {
+        setAppState('landing');
       }
     }, 5000);
 
