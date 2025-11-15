@@ -32,16 +32,22 @@ export default function PhonologicalGame({ onComplete }: PhonologicalGameProps) 
 
   const handleAnswer = (selected: string) => {
     const reactionTime = Date.now() - startTime;
-    setReactionTimes([...reactionTimes, reactionTime]);
+    const updatedReactionTimes = [...reactionTimes, reactionTime];
+    setReactionTimes(updatedReactionTimes);
 
     const currentPair = RHYME_PAIRS[currentRound];
     const isCorrect = selected === currentPair.correct;
 
+    let updatedScore = score;
+    let updatedFalseClicks = falseClicks;
+
     if (isCorrect) {
-      setScore(score + 1);
+      updatedScore = score + 1;
+      setScore(updatedScore);
       setShowFeedback('correct');
     } else {
-      setFalseClicks(falseClicks + 1);
+      updatedFalseClicks = falseClicks + 1;
+      setFalseClicks(updatedFalseClicks);
       setShowFeedback('wrong');
     }
 
@@ -52,14 +58,14 @@ export default function PhonologicalGame({ onComplete }: PhonologicalGameProps) 
       } else {
         // Game complete
         const avgReactionTime =
-          reactionTimes.length > 0
-            ? reactionTimes.reduce((a, b) => a + b, reactionTime) / (reactionTimes.length + 1)
-            : reactionTime;
+          updatedReactionTimes.length > 0
+            ? updatedReactionTimes.reduce((a, b) => a + b, 0) / updatedReactionTimes.length
+            : 0;
 
         const metrics: GameMetrics = {
-          accuracy: score / RHYME_PAIRS.length,
+          accuracy: updatedScore / RHYME_PAIRS.length,
           avgReactionTime,
-          falseClicks,
+          falseClicks: updatedFalseClicks,
           retries: 0,
         };
 

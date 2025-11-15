@@ -9,8 +9,10 @@ SproutSense is a browser-based tool that helps parents and teachers detect early
 - 🎮 **Playful Mini-Games** - 2-3 minute games designed by learning specialists
 - 📊 **Smart Insights** - Color-coded signals (green/yellow/red) highlighting areas that may need attention
 - 🔒 **100% Private** - All data stays in your browser, never collected or shared
-- 👥 **For Ages 5-10** - Perfect for parents and teachers to spot early signals
+- � **Email Results** - Send detailed assessment reports to registered email addresses
+- �👥 **For Ages 5-10** - Perfect for parents and teachers to spot early signals
 - 📱 **Works Everywhere** - Fully client-side, works on any device with a browser
+- 🎯 **Professional Dashboard** - Track multiple children and view test history
 
 ## 🎯 Mini-Games
 
@@ -28,7 +30,31 @@ SproutSense is a browser-based tool that helps parents and teachers detect early
 
 ## 🚀 Getting Started
 
-First, run the development server:
+### 1. Install Dependencies
+
+```bash
+npm install
+```
+
+### 2. Set Up Clerk Authentication
+
+See [CLERK_SETUP.md](./CLERK_SETUP.md) for detailed instructions on setting up Clerk authentication.
+
+Quick setup:
+1. Create a Clerk account at [clerk.com](https://clerk.com)
+2. Add your API keys to `.env.local`
+3. Configure the redirect URLs in Clerk dashboard
+
+### 3. Set Up Email Functionality (Optional)
+
+See [EMAIL_SETUP.md](./EMAIL_SETUP.md) for detailed instructions on setting up email results.
+
+Quick setup:
+1. Create a Resend account at [resend.com](https://resend.com)
+2. Get your API key from the dashboard
+3. Add `RESEND_API_KEY` to `.env.local`
+
+### 4. Run the Development Server
 
 ```bash
 npm run dev
@@ -43,6 +69,8 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - **Tailwind CSS** - Utility-first styling with pastel, child-friendly design
 - **Framer Motion** - Smooth animations and transitions
 - **shadcn/ui** - Accessible component library
+- **Clerk** - User authentication and management
+- **Resend** - Email delivery for assessment reports
 - **LocalStorage** - Privacy-safe data persistence
 
 ## 📊 How It Works

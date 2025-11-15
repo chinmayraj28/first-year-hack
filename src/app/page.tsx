@@ -1,21 +1,93 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { UserButton, useUser } from '@clerk/nextjs';
+import { Shader, ChromaFlow, Swirl } from 'shaders/react';
+import { GrainOverlay } from '@/components/grain-overlay';
+import { Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import PhonologicalGame from '@/components/games/PhonologicalGame';
 import AttentionGame from '@/components/games/AttentionGame';
 import ResultsDashboard from '@/components/ResultsDashboard';
 import LoadingScreen from '@/components/LoadingScreen';
+import OnboardingFlow, { OnboardingData } from '@/components/OnboardingFlow';
+import ProfessionalDashboard from '@/components/ProfessionalDashboard';
+import { LandingPage } from '@/components/LandingPage';
 import { GameMetrics, GameResult, DomainResult } from '@/types/game';
 import { evaluateDomain, generateFeedback, saveResults } from '@/lib/scoring';
+import { getParentProfile, saveParentProfile, addChild, getAllChildren } from '@/lib/profile';
+import { ChildProfile } from '@/types/profile';
 
-type GameState = 'landing' | 'phonological' | 'attention' | 'loading' | 'results';
+type AppState = 'loading' | 'landing' | 'onboarding' | 'dashboard' | 'playing' | 'results';
+type GameState = 'phonological' | 'attention' | 'loading';
 
 export default function Home() {
-  const [gameState, setGameState] = useState<GameState>('landing');
+  const { user, isLoaded } = useUser();
+  const [appState, setAppState] = useState<AppState>('loading');
+  const [gameState, setGameState] = useState<GameState>('phonological');
   const [gameResults, setGameResults] = useState<GameResult[]>([]);
+  const [currentChild, setCurrentChild] = useState<ChildProfile | null>(null);
+  const [children, setChildren] = useState<ChildProfile[]>([]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      if (user) {
+        const profile = getParentProfile(user.id);
+        if (!profile || !profile.acceptedPrivacyPolicy) {
+          setAppState('onboarding');
+        } else {
+          const userChildren = getAllChildren(user.id);
+          setChildren(userChildren);
+          setAppState('dashboard');
+        }
+      } else {
+        setAppState('landing');
+      }
+    }
+  }, [isLoaded, user]);
+
+  const handleOnboardingComplete = (data: OnboardingData) => {
+    if (!user) return;
+
+    // Save parent profile with agreements
+    saveParentProfile({
+      userId: user.id,
+      acceptedPrivacyPolicy: data.acceptedPrivacy,
+      acceptedTerms: data.acceptedTerms,
+      acceptedDisclaimer: data.acceptedDisclaimer,
+      children: [],
+      createdAt: Date.now(),
+    });
+
+    // Add the child
+    const child = addChild(user.id, {
+      name: data.childName,
+      age: data.childAge,
+      grade: data.childGrade,
+      concerns: data.concerns,
+      notes: data.notes || '',
+    });
+
+    setCurrentChild(child);
+    setChildren([child]);
+    setAppState('dashboard');
+  };
+
+  const handleSelectChild = (childId: string) => {
+    const child = children.find((c) => c.id === childId);
+    if (child) {
+      setCurrentChild(child);
+      setGameResults([]);
+      setGameState('phonological');
+      setAppState('playing');
+    }
+  };
+
+  const handleAddChild = () => {
+    setAppState('onboarding');
+  };
 
   const handleGameComplete = (gameType: string, metrics: GameMetrics) => {
     const result: GameResult = {
@@ -62,41 +134,113 @@ export default function Home() {
       };
     });
 
-    // Save to localStorage
+    // Save to localStorage with child ID
     saveResults({
       id: Date.now().toString(),
       timestamp: Date.now(),
+      childId: currentChild?.id,
+      childName: currentChild?.name,
       games: gameResults,
       domainResults,
     });
 
-    setGameState('results');
+    setAppState('results');
   };
 
   const handlePlayAgain = () => {
     setGameResults([]);
-    setGameState('landing');
+    setAppState('dashboard');
   };
 
-  if (gameState === 'phonological') {
+  // Show loading
+  if (!isLoaded || appState === 'loading') {
     return (
-      <PhonologicalGame
-        onComplete={(metrics) => handleGameComplete('phonological', metrics)}
+      <div className="relative min-h-screen bg-background flex items-center justify-center overflow-hidden">
+        <GrainOverlay />
+        <div className="fixed inset-0 z-0">
+          <Shader className="h-full w-full">
+            <Swirl
+              colorA="#1275d8"
+              colorB="#e19136"
+              speed={0.8}
+              detail={0.8}
+              blend={50}
+              coarseX={40}
+              coarseY={40}
+              mediumX={40}
+              mediumY={40}
+              fineX={40}
+              fineY={40}
+            />
+            <ChromaFlow
+              baseColor="#0066ff"
+              upColor="#0066ff"
+              downColor="#d1d1d1"
+              leftColor="#e19136"
+              rightColor="#e19136"
+              intensity={0.9}
+              radius={1.8}
+              momentum={25}
+              maskType="alpha"
+              opacity={0.97}
+            />
+          </Shader>
+          <div className="absolute inset-0 bg-black/20" />
+        </div>
+        <div className="relative z-10 text-center">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+            className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/20 backdrop-blur-md border-2 border-primary/40 mx-auto mb-6"
+          >
+            <Activity className="h-8 w-8 text-primary" />
+          </motion.div>
+          <p className="text-xl text-white/80 font-light">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show onboarding
+  if (appState === 'onboarding' && user) {
+    return <OnboardingFlow onComplete={handleOnboardingComplete} userId={user.id} />;
+  }
+
+  // Show dashboard
+  if (appState === 'dashboard' && user) {
+    return (
+      <ProfessionalDashboard
+        userId={user.id}
+        children={children}
+        onSelectChild={handleSelectChild}
+        onAddChild={handleAddChild}
       />
     );
   }
 
-  if (gameState === 'attention') {
-    return (
-      <AttentionGame onComplete={(metrics) => handleGameComplete('attention', metrics)} />
-    );
+  // Show games
+  if (appState === 'playing') {
+    if (gameState === 'phonological') {
+      return (
+        <PhonologicalGame
+          onComplete={(metrics) => handleGameComplete('phonological', metrics)}
+        />
+      );
+    }
+
+    if (gameState === 'attention') {
+      return (
+        <AttentionGame onComplete={(metrics) => handleGameComplete('attention', metrics)} />
+      );
+    }
+
+    if (gameState === 'loading') {
+      return <LoadingScreen onComplete={handleLoadingComplete} />;
+    }
   }
 
-  if (gameState === 'loading') {
-    return <LoadingScreen onComplete={handleLoadingComplete} />;
-  }
-
-  if (gameState === 'results') {
+  // Show results
+  if (appState === 'results') {
     const domainResults: DomainResult[] = gameResults.map((result) => {
       const signal = evaluateDomain(result.metrics);
       
@@ -122,99 +266,25 @@ export default function Home() {
       };
     });
 
-    return <ResultsDashboard results={domainResults} onPlayAgain={handlePlayAgain} />;
+    return (
+      <>
+        <div className="absolute top-4 right-4 z-50">
+          <UserButton afterSignOutUrl="/" />
+        </div>
+        <ResultsDashboard 
+          results={domainResults} 
+          onPlayAgain={handlePlayAgain}
+          childName={currentChild?.name}
+        />
+      </>
+    );
   }
 
-  // Landing page
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 p-8 flex items-center justify-center">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-4xl w-full"
-      >
-        <div className="text-center mb-12">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 10 }}
-            className="text-8xl mb-6"
-          >
-            🌱
-          </motion.div>
-          <h1 className="text-6xl font-bold text-green-600 mb-4">SproutSense</h1>
-          <p className="text-2xl text-gray-600 font-medium">
-            Early Learning Signal Detector
-          </p>
-          <p className="text-lg text-gray-500 mt-2 max-w-2xl mx-auto">
-            Detect learning friction through play - helping children before frustration becomes
-            struggle
-          </p>
-        </div>
+  // Show landing page
+  if (appState === 'landing') {
+    return <LandingPage />;
+  }
 
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          <Card className="border-2 border-purple-200 bg-white/80 backdrop-blur">
-            <CardContent className="pt-6">
-              <div className="text-4xl mb-3">🎮</div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">Playful Games</h3>
-              <p className="text-gray-600">
-                2-3 minute mini-games designed by learning specialists to measure behavior, not
-                grades
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2 border-blue-200 bg-white/80 backdrop-blur">
-            <CardContent className="pt-6">
-              <div className="text-4xl mb-3">📊</div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">Smart Insights</h3>
-              <p className="text-gray-600">
-                Get colour-coded signals highlighting areas that may need attention or support
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2 border-green-200 bg-white/80 backdrop-blur">
-            <CardContent className="pt-6">
-              <div className="text-4xl mb-3">🔒</div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">100% Private</h3>
-              <p className="text-gray-600">
-                All data stays in your browser - we never collect or share your child's
-                information
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2 border-pink-200 bg-white/80 backdrop-blur">
-            <CardContent className="pt-6">
-              <div className="text-4xl mb-3">👥</div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">For Ages 5-10</h3>
-              <p className="text-gray-600">
-                Perfect for parents and teachers to spot early signals of learning differences
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="text-center"
-        >
-          <Button
-            onClick={() => setGameState('phonological')}
-            size="lg"
-            className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white rounded-full px-12 py-8 text-2xl font-bold shadow-2xl"
-          >
-            🚀 Start Playing
-          </Button>
-        </motion.div>
-
-        <p className="text-center text-sm text-gray-500 mt-8 max-w-xl mx-auto">
-          This tool provides observational insights only and is not a medical diagnostic
-          instrument. Please consult professionals for comprehensive assessment.
-        </p>
-      </motion.div>
-    </div>
-  );
+  // Fallback
+  return null;
 }

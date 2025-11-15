@@ -1,0 +1,528 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { UserButton } from '@clerk/nextjs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ChildProfile } from '@/types/profile';
+import { getResultsHistory } from '@/lib/scoring';
+import { 
+  LayoutDashboard, 
+  Users, 
+  History, 
+  Plus, 
+  PlayCircle, 
+  TrendingUp,
+  Calendar,
+  Activity
+} from 'lucide-react';
+
+interface ProfessionalDashboardProps {
+  userId: string;
+  children: ChildProfile[];
+  onSelectChild: (childId: string) => void;
+  onAddChild: () => void;
+}
+
+export default function ProfessionalDashboard({
+  userId,
+  children,
+  onSelectChild,
+  onAddChild,
+}: ProfessionalDashboardProps) {
+  const [testHistory, setTestHistory] = useState<any[]>([]);
+  const [selectedChildForHistory, setSelectedChildForHistory] = useState<ChildProfile | null>(
+    children.length > 0 ? children[0] : null
+  );
+
+  useEffect(() => {
+    const history = getResultsHistory();
+    setTestHistory(history);
+  }, []);
+
+  const getFilteredHistory = () => {
+    if (!selectedChildForHistory) return testHistory;
+    return testHistory.filter((test) => test.childId === selectedChildForHistory.id);
+  };
+
+  const getSignalColor = (signal: string) => {
+    switch (signal) {
+      case 'green':
+        return 'text-emerald-400 bg-emerald-950/30 border-emerald-900/30';
+      case 'yellow':
+        return 'text-amber-400 bg-amber-950/30 border-amber-900/30';
+      case 'red':
+        return 'text-rose-400 bg-rose-950/30 border-rose-900/30';
+      default:
+        return 'text-slate-400 bg-slate-950/30 border-slate-900/30';
+    }
+  };
+
+  const getOverallSignal = (test: any) => {
+    if (!test.domainResults) return 'green';
+    const signals = test.domainResults.map((r: any) => r.signal);
+    if (signals.includes('red')) return 'red';
+    if (signals.includes('yellow')) return 'yellow';
+    return 'green';
+  };
+
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getChildTestStats = (childId: string) => {
+    const childTests = testHistory.filter((t) => t.childId === childId);
+    const totalTests = childTests.length;
+    const latestTest = childTests[0];
+    return { totalTests, latestTest };
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Modern Header */}
+      <div className="bg-card border-b border-border sticky top-0 z-50 backdrop-blur-lg bg-opacity-90">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Activity className="h-8 w-8 text-primary" />
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground tracking-tight">SproutSense</h1>
+                  <p className="text-sm text-muted-foreground">Professional Assessment Platform</p>
+                </div>
+              </div>
+            </div>
+            <UserButton afterSignOutUrl="/" />
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3 lg:w-auto bg-card border border-border">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <LayoutDashboard className="h-4 w-4 mr-2" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="children" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Users className="h-4 w-4 mr-2" />
+              Children
+            </TabsTrigger>
+            <TabsTrigger value="history" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <History className="h-4 w-4 mr-2" />
+              Test History
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+              {/* Stats Cards */}
+              <div className="grid gap-6 md:grid-cols-3">
+                <Card className="bg-card border-border">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Total Children
+                    </CardTitle>
+                    <Users className="h-4 w-4 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-foreground">{children.length}</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card border-border">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Tests Completed
+                    </CardTitle>
+                    <TrendingUp className="h-4 w-4 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-foreground">{testHistory.length}</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card border-border">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Latest Assessment
+                    </CardTitle>
+                    <Calendar className="h-4 w-4 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-lg font-semibold text-foreground">
+                      {testHistory.length > 0
+                        ? new Date(testHistory[0].timestamp).toLocaleDateString()
+                        : 'No tests yet'}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Quick Actions */}
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <CardTitle className="text-foreground">Quick Actions</CardTitle>
+                  <CardDescription className="text-muted-foreground">
+                    Start a new assessment or manage your children
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col sm:flex-row gap-4">
+                  <Button
+                    onClick={onAddChild}
+                    className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Child
+                  </Button>
+                  {children.length > 0 && (
+                    <Button
+                      onClick={() => onSelectChild(children[0].id)}
+                      className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground"
+                    >
+                      <PlayCircle className="mr-2 h-4 w-4" />
+                      Start Assessment
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Recent Activity */}
+              {testHistory.length > 0 && (
+                <Card className="bg-card border-border">
+                  <CardHeader>
+                    <CardTitle className="text-foreground">Recent Activity</CardTitle>
+                    <CardDescription className="text-muted-foreground">
+                      Latest assessment results
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {testHistory.slice(0, 3).map((test, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border border-border"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-foreground">{test.childName}</span>
+                              <span className="text-sm text-muted-foreground">
+                                {formatDate(test.timestamp)}
+                              </span>
+                            </div>
+                          </div>
+                          <Badge className={`${getSignalColor(getOverallSignal(test))} border`}>
+                            {getOverallSignal(test) === 'green' && 'Typical'}
+                            {getOverallSignal(test) === 'yellow' && 'Monitor'}
+                            {getOverallSignal(test) === 'red' && 'Attention'}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </motion.div>
+          </TabsContent>
+
+          {/* Children Tab */}
+          <TabsContent value="children" className="space-y-6">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground">Children</h2>
+                  <p className="text-muted-foreground">Manage child profiles and view their progress</p>
+                </div>
+                <Button onClick={onAddChild} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Child
+                </Button>
+              </div>
+
+              {children.length === 0 ? (
+                <Card className="bg-card border-border">
+                  <CardContent className="flex flex-col items-center justify-center py-16">
+                    <Users className="h-16 w-16 text-muted-foreground mb-4" />
+                    <h3 className="text-xl font-semibold text-foreground mb-2">No children added yet</h3>
+                    <p className="text-muted-foreground mb-6 text-center max-w-md">
+                      Add a child profile to start tracking their learning journey
+                    </p>
+                    <Button onClick={onAddChild} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Your First Child
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {children.map((child) => {
+                    const stats = getChildTestStats(child.id);
+                    return (
+                      <Card key={child.id} className="bg-card border-border hover:border-primary/50 transition-colors">
+                        <CardHeader>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="text-xl font-bold text-gray-800">{child.name}</h3>
+                              <p className="text-sm text-gray-500">
+                                Age {child.age} {child.grade && `• ${child.grade}`}
+                              </p>
+                            </div>
+                            <Badge variant="secondary" className="text-xs">
+                              {
+                                testHistory.filter((t) => t.childId === child.id).length
+                              }{' '}
+                              tests
+                            </Badge>
+                          </div>
+                          <Button
+                            onClick={() => onSelectChild(child.id)}
+                            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                          >
+                            🎮 Start New Assessment
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Recent Activity */}
+            {testHistory.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Assessments</CardTitle>
+                  <CardDescription>Latest 5 test results</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {testHistory.slice(-5).reverse().map((test, idx) => {
+                      const overallSignal = getOverallSignal(test);
+                      return (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="text-3xl">
+                              {overallSignal === 'green' && '🟢'}
+                              {overallSignal === 'yellow' && '🟡'}
+                              {overallSignal === 'red' && '🔴'}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-800">
+                                {test.childName || 'Unknown Child'}
+                              </p>
+                              <p className="text-sm text-gray-500">{formatDate(test.timestamp)}</p>
+                            </div>
+                          </div>
+                          <Badge className={getSignalColor(overallSignal)}>
+                            {overallSignal === 'green' && 'Typical'}
+                            {overallSignal === 'yellow' && 'Watch'}
+                            {overallSignal === 'red' && 'Concern'}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Children Tab */}
+          <TabsContent value="children" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">Children Profiles</h2>
+                <p className="text-gray-500">Manage your children's information</p>
+              </div>
+              <Button
+                onClick={onAddChild}
+                className="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
+              >
+                + Add Child
+              </Button>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {children.map((child) => {
+                const childTests = testHistory.filter((t) => t.childId === child.id);
+                const latestTest = childTests[childTests.length - 1];
+                
+                return (
+                  <Card key={child.id} className="border-2 border-gray-200">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="text-4xl mb-2">👦👧</div>
+                          <CardTitle className="text-xl">{child.name}</CardTitle>
+                          <CardDescription>
+                            Age {child.age} {child.grade && `• ${child.grade}`}
+                          </CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {child.concerns && child.concerns.length > 0 && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-600 mb-2">
+                            Focus Areas:
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {child.concerns.map((concern) => (
+                              <Badge key={concern} variant="outline" className="text-xs">
+                                {concern}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="pt-4 border-t">
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-gray-600">Total Tests:</span>
+                          <span className="font-semibold">{childTests.length}</span>
+                        </div>
+                        {latestTest && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Last Test:</span>
+                            <span className="font-semibold">
+                              {formatDate(latestTest.timestamp).split(',')[0]}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <Button
+                        onClick={() => {
+                          setSelectedChild(child);
+                          onSelectChild(child.id);
+                        }}
+                        className="w-full"
+                        variant="default"
+                      >
+                        Start Assessment
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </TabsContent>
+
+          {/* History Tab */}
+          <TabsContent value="history" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">Test History</h2>
+                <p className="text-gray-500">View all past assessments and results</p>
+              </div>
+              {children.length > 1 && (
+                <select
+                  className="px-4 py-2 border border-gray-300 rounded-lg"
+                  value={selectedChild?.id || 'all'}
+                  onChange={(e) => {
+                    const child = children.find((c) => c.id === e.target.value);
+                    setSelectedChild(child || null);
+                  }}
+                >
+                  <option value="all">All Children</option>
+                  {children.map((child) => (
+                    <option key={child.id} value={child.id}>
+                      {child.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {getFilteredHistory().length === 0 ? (
+              <Card>
+                <CardContent className="text-center py-12">
+                  <div className="text-6xl mb-4">📊</div>
+                  <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                    No test history yet
+                  </h3>
+                  <p className="text-gray-500 mb-6">
+                    Complete your first assessment to see results here
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {getFilteredHistory()
+                  .reverse()
+                  .map((test, idx) => {
+                    const overallSignal = getOverallSignal(test);
+                    return (
+                      <Card key={idx} className="border-2">
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <CardTitle className="flex items-center gap-2">
+                                {test.childName || 'Unknown Child'}
+                                <Badge className={getSignalColor(overallSignal)}>
+                                  {overallSignal === 'green' && '🟢 Typical Range'}
+                                  {overallSignal === 'yellow' && '🟡 Watch'}
+                                  {overallSignal === 'red' && '🔴 Attention Needed'}
+                                </Badge>
+                              </CardTitle>
+                              <CardDescription>{formatDate(test.timestamp)}</CardDescription>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid md:grid-cols-2 gap-4">
+                            {test.domainResults?.map((domain: any, dIdx: number) => (
+                              <div
+                                key={dIdx}
+                                className="p-4 bg-gray-50 rounded-lg border border-gray-200"
+                              >
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-2xl">{domain.emoji}</span>
+                                  <h4 className="font-semibold text-gray-800">
+                                    {domain.domain}
+                                  </h4>
+                                </div>
+                                <p className="text-sm text-gray-600 mb-3">{domain.feedback}</p>
+                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                  <div>
+                                    <span className="text-gray-500">Accuracy:</span>
+                                    <span className="font-semibold ml-1">
+                                      {(domain.metrics.accuracy * 100).toFixed(0)}%
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="text-gray-500">Reaction:</span>
+                                    <span className="font-semibold ml-1">
+                                      {domain.metrics.avgReactionTime.toFixed(0)}ms
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+}

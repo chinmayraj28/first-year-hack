@@ -5,13 +5,67 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DomainResult } from '@/types/game';
+import { useState } from 'react';
+import { useUser } from '@clerk/nextjs';
 
 interface ResultsDashboardProps {
   results: DomainResult[];
   onPlayAgain: () => void;
+  childName?: string;
 }
 
-export default function ResultsDashboard({ results, onPlayAgain }: ResultsDashboardProps) {
+export default function ResultsDashboard({ results, onPlayAgain, childName }: ResultsDashboardProps) {
+  const { user } = useUser();
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const handleEmailResults = async () => {
+    if (!user?.primaryEmailAddress?.emailAddress) {
+      alert('No email address found. Please add an email to your account.');
+      return;
+    }
+
+    setIsSendingEmail(true);
+    setEmailStatus('idle');
+
+    try {
+      const response = await fetch('/api/send-results', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: user.primaryEmailAddress.emailAddress,
+          childName: childName || 'Your Child',
+          results: results.map(r => ({
+            domain: r.domain,
+            score: Math.round(r.metrics.accuracy * 100),
+            signal: getSignalText(r.signal),
+            metrics: {
+              accuracy: (r.metrics.accuracy * 100).toFixed(0),
+              avgResponseTime: r.metrics.avgReactionTime.toFixed(0),
+            },
+            notes: r.feedback,
+          })),
+          testDate: new Date().toISOString(),
+        }),
+      });
+
+      if (response.ok) {
+        setEmailStatus('success');
+        setTimeout(() => setEmailStatus('idle'), 3000);
+      } else {
+        throw new Error('Failed to send email');
+      }
+    } catch (error) {
+      console.error('Error sending email:', error);
+      setEmailStatus('error');
+      setTimeout(() => setEmailStatus('idle'), 3000);
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
   const getSignalColor = (signal: string) => {
     switch (signal) {
       case 'green':
@@ -168,6 +222,23 @@ export default function ResultsDashboard({ results, onPlayAgain }: ResultsDashbo
             className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-full px-8 py-6 text-lg font-semibold"
           >
             🎮 Play Again
+          </Button>
+          <Button
+            onClick={handleEmailResults}
+            size="lg"
+            variant="outline"
+            className="rounded-full px-8 py-6 text-lg font-semibold"
+            disabled={isSendingEmail}
+          >
+            {isSendingEmail ? (
+              <>⏳ Sending...</>
+            ) : emailStatus === 'success' ? (
+              <>✅ Email Sent!</>
+            ) : emailStatus === 'error' ? (
+              <>❌ Failed</>
+            ) : (
+              <>📧 Email Results</>
+            )}
           </Button>
           <Button
             onClick={() => window.print()}

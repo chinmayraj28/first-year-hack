@@ -24,6 +24,8 @@ export default function AttentionGame({ onComplete }: AttentionGameProps) {
   const [startTime, setStartTime] = useState<number>(0);
   const [gameStarted, setGameStarted] = useState(false);
   const [countdown, setCountdown] = useState(3);
+  const [emojiPosition, setEmojiPosition] = useState({ x: 50, y: 50 });
+  const [waitingForNext, setWaitingForNext] = useState(false);
 
   const startNextRound = useCallback(() => {
     if (currentRound >= TOTAL_ROUNDS) {
@@ -47,6 +49,7 @@ export default function AttentionGame({ onComplete }: AttentionGameProps) {
       return;
     }
 
+    setWaitingForNext(true);
     const delay = Math.random() * 2000 + 1000; // 1-3 seconds
     const willBeTarget = Math.random() > 0.4; // 60% target, 40% distractor
 
@@ -55,16 +58,22 @@ export default function AttentionGame({ onComplete }: AttentionGameProps) {
         ? TARGET_EMOJI
         : TARGETS[Math.floor(Math.random() * TARGETS.length)];
       
+      // Random position (20% to 80% to keep it visible)
+      const randomX = Math.random() * 60 + 20;
+      const randomY = Math.random() * 60 + 20;
+      
+      setEmojiPosition({ x: randomX, y: randomY });
       setCurrentEmoji(emoji);
       setIsTarget(emoji === TARGET_EMOJI);
       setShowEmoji(true);
       setStartTime(Date.now());
+      setWaitingForNext(false);
 
-      // Hide after 1.5 seconds
+      // Hide after 1.5 seconds and move to next round
       setTimeout(() => {
+        if (emoji === TARGET_EMOJI) return; // Don't auto-advance for target, wait for click
         setShowEmoji(false);
-        setCurrentRound(currentRound + 1);
-        startNextRound();
+        setCurrentRound((prev) => prev + 1);
       }, 1500);
     }, delay);
   }, [currentRound, correctClicks, falseClicks, reactionTimes, onComplete]);
@@ -75,14 +84,19 @@ export default function AttentionGame({ onComplete }: AttentionGameProps) {
       return () => clearTimeout(timer);
     } else if (countdown === 0 && !gameStarted) {
       setGameStarted(true);
+    }
+  }, [countdown, gameStarted]);
+
+  useEffect(() => {
+    if (gameStarted && currentRound < TOTAL_ROUNDS && !waitingForNext && !showEmoji) {
       startNextRound();
     }
-  }, [countdown, gameStarted, startNextRound]);
+  }, [gameStarted, currentRound, waitingForNext, showEmoji, startNextRound]);
 
   const handleClick = () => {
     if (!showEmoji) {
       // Clicked when nothing showing - false click
-      setFalseClicks(falseClicks + 1);
+      setFalseClicks((prev) => prev + 1);
       return;
     }
 
@@ -90,14 +104,13 @@ export default function AttentionGame({ onComplete }: AttentionGameProps) {
 
     if (isTarget) {
       // Correct click
-      setCorrectClicks(correctClicks + 1);
-      setReactionTimes([...reactionTimes, reactionTime]);
+      setCorrectClicks((prev) => prev + 1);
+      setReactionTimes((prev) => [...prev, reactionTime]);
       setShowEmoji(false);
-      setCurrentRound(currentRound + 1);
-      startNextRound();
+      setCurrentRound((prev) => prev + 1);
     } else {
       // Clicked on distractor - false click
-      setFalseClicks(falseClicks + 1);
+      setFalseClicks((prev) => prev + 1);
     }
   };
 
@@ -134,7 +147,7 @@ export default function AttentionGame({ onComplete }: AttentionGameProps) {
             </div>
           </div>
 
-          <div className="relative h-64 flex items-center justify-center border-4 border-dashed border-orange-300 rounded-2xl bg-orange-50/50">
+          <div className="relative h-96 border-4 border-dashed border-orange-300 rounded-2xl bg-orange-50/50 overflow-hidden">
             <AnimatePresence>
               {showEmoji && (
                 <motion.div
@@ -143,7 +156,13 @@ export default function AttentionGame({ onComplete }: AttentionGameProps) {
                   animate={{ scale: 1, rotate: 0 }}
                   exit={{ scale: 0, rotate: 180 }}
                   transition={{ duration: 0.3 }}
-                  className="text-9xl cursor-pointer"
+                  style={{
+                    position: 'absolute',
+                    left: `${emojiPosition.x}%`,
+                    top: `${emojiPosition.y}%`,
+                    transform: 'translate(-50%, -50%)',
+                  }}
+                  className="text-8xl cursor-pointer select-none"
                 >
                   {currentEmoji}
                 </motion.div>
