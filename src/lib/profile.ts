@@ -182,10 +182,8 @@ export function getStudentByUserId(userId: string): StudentProfile | null {
 }
 
 // ========== Generic User Profile Functions ==========
-export function getUserProfile(userId: string, userType: UserType): ParentProfile | TeacherProfile | StudentUserProfile | null {
+export function getUserProfile(userId: string, userType: UserType): TeacherProfile | StudentUserProfile | null {
   switch (userType) {
-    case 'parent':
-      return getParentProfile(userId);
     case 'teacher':
       return getTeacherProfile(userId);
     case 'student':
