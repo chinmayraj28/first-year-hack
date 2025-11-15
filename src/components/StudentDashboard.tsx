@@ -58,7 +58,20 @@ export default function StudentDashboard({
   }, [reportCode, studentReports, student]);
 
   // Transform Convex reports to local format
-  const testHistory = (studentReports || []).map((r: any) => ({
+  type TestHistoryItem = {
+    id: string;
+    timestamp: number;
+    domainResults: any[];
+    overallSignal?: string;
+    studentName: string;
+    grade: string;
+    reportCode: string;
+    apiAnalysisResult?: any;
+    subjectAssessments?: any[];
+    questionnaireData?: any[];
+  };
+
+  const testHistory: TestHistoryItem[] = (studentReports || []).map((r: any) => ({
     id: r._id,
     timestamp: r.timestamp || r.completedAt || Date.now(),
     domainResults: r.domainResults || r.results || [],
