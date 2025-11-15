@@ -52,9 +52,10 @@ export default function Home() {
       if (appState === 'loading' && !isLoaded) {
         console.warn('Clerk loading timeout - proceeding anyway');
         // If Clerk hasn't loaded after 5 seconds, proceed anyway
-        if (user) {
-          const teacherProfile = getTeacherProfile(user.id);
-          const studentProfile = getStudentProfile(user.id);
+        if (user && user.id) {
+          const userId = user.id;
+          const teacherProfile = getTeacherProfile(userId);
+          const studentProfile = getStudentProfile(userId);
 
           if (teacherProfile) {
             setUserType('teacher');
