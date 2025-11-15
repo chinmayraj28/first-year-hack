@@ -1,0 +1,470 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { UserButton } from '@clerk/nextjs';
+import { Shader, ChromaFlow, Swirl } from 'shaders/react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { GrainOverlay } from '@/components/grain-overlay';
+import { MagneticButton } from '@/components/magnetic-button';
+import { TeacherProfile } from '@/types/profile';
+import { 
+  getTeacherProfile, 
+  saveTeacherProfile
+} from '@/lib/profile';
+import { 
+  useSaveReport,
+  useGetTeacherReports,
+  useGenerateUploadUrl
+} from '@/lib/scoring';
+import { 
+  Activity,
+  FileText,
+  Upload,
+  Hash,
+  Copy,
+  CheckCircle2,
+  Plus,
+  X,
+  Download
+} from 'lucide-react';
+
+interface TeacherDashboardProps {
+  userId: string;
+  teacherProfile: TeacherProfile;
+  onRefresh: () => void;
+}
+
+interface Report {
+  id: string;
+  reportCode: string;
+  studentName: string;
+  grade: string;
+  gradeLevel: '< 6th Grade' | '>= 6th Grade';
+  timestamp: number;
+  studentId?: string;
+  file?: File;
+  fileName?: string;
+}
+
+export default function TeacherDashboard({
+  userId,
+  teacherProfile,
+  onRefresh,
+}: TeacherDashboardProps) {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [newReport, setNewReport] = useState<Partial<Report>>({
+    studentName: '',
+    grade: '',
+    gradeLevel: '>= 6th Grade',
+  });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  
+  // Convex hooks
+  const saveReport = useSaveReport();
+  const teacherReports = useGetTeacherReports(userId);
+  const generateUploadUrl = useGenerateUploadUrl();
+
+  useEffect(() => {
+    setTimeout(() => setIsLoaded(true), 300);
+  }, []);
+
+  // Transform Convex reports to local Report format
+  const reports: Report[] = (teacherReports || []).map((r: any) => ({
+    id: r._id,
+    reportCode: r.reportCode,
+    studentName: r.studentName || 'Unknown',
+    grade: r.grade || '',
+    gradeLevel: (r.gradeLevel || '>= 6th Grade') as '< 6th Grade' | '>= 6th Grade',
+    timestamp: r.timestamp || r.completedAt || Date.now(),
+    studentId: r.studentId,
+    fileName: r.fileName,
+  }));
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setNewReport({ ...newReport, fileName: file.name });
+    }
+  };
+
+  const handleUploadReport = async () => {
+    if (!newReport.studentName?.trim() || !newReport.grade?.trim()) {
+      alert('Please fill in student name and grade');
+      return;
+    }
+
+    try {
+      let fileStorageId: string | undefined;
+      
+      // Upload file to Convex if a file is selected
+      if (selectedFile) {
+        try {
+          // Generate upload URL
+          const uploadUrl = await generateUploadUrl();
+          
+          // Upload file to Convex
+          const uploadResult = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': selectedFile.type },
+            body: selectedFile,
+          });
+          
+          if (!uploadResult.ok) {
+            throw new Error('Failed to upload file');
+          }
+          
+          // Get storage ID from response
+          // Convex returns the storageId in a JSON object
+          const responseData = await uploadResult.json();
+          fileStorageId = responseData.storageId;
+        } catch (fileError: any) {
+          console.error('File upload error:', fileError);
+          // Continue without file if upload fails
+          alert(`Warning: File upload failed. Report will be saved without file. ${fileError.message}`);
+        }
+      }
+
+      // Save report to Convex
+      await saveReport({
+        teacherId: userId,
+        studentName: newReport.studentName.trim(),
+        grade: newReport.grade.trim(),
+        gradeLevel: newReport.gradeLevel || '>= 6th Grade',
+        fileName: selectedFile?.name,
+        fileStorageId: fileStorageId as any, // Convex storage ID
+        domainResults: [], // Will be populated when report is analyzed
+      });
+
+      // Reset form
+      setNewReport({ studentName: '', grade: '', gradeLevel: '>= 6th Grade' });
+      setSelectedFile(null);
+      setShowUploadForm(false);
+      onRefresh();
+    } catch (error: any) {
+      alert(`Failed to save report: ${error.message || 'Unknown error'}`);
+    }
+  };
+
+  const copyToClipboard = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  return (
+    <main className="relative min-h-screen w-full overflow-hidden bg-background">
+      <GrainOverlay />
+
+      {/* Animated Background */}
+      <div className={`fixed inset-0 z-0 transition-opacity duration-700 ${
+        isLoaded ? 'opacity-40' : 'opacity-0'
+      }`}>
+        <Shader className="h-full w-full">
+          <Swirl
+            colorA="#1275d8"
+            colorB="#e19136"
+            speed={0.6}
+            detail={0.7}
+            blend={60}
+            coarseX={30}
+            coarseY={30}
+            mediumX={30}
+            mediumY={30}
+            fineX={30}
+            fineY={30}
+          />
+          <ChromaFlow
+            baseColor="#0066ff"
+            upColor="#0066ff"
+            downColor="#d1d1d1"
+            leftColor="#e19136"
+            rightColor="#e19136"
+            intensity={0.7}
+            radius={1.5}
+            momentum={20}
+            maskType="alpha"
+            opacity={0.95}
+          />
+        </Shader>
+      </div>
+
+      {/* Header */}
+      <nav className={`fixed left-0 right-0 top-0 z-50 transition-opacity duration-700 ${
+        isLoaded ? 'opacity-100' : 'opacity-0'
+      }`}>
+        <div className="mx-auto max-w-7xl px-6 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/20 backdrop-blur-xl border border-primary/30">
+                <Activity className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground tracking-tight">SproutSense</h1>
+                <p className="text-xs text-muted-foreground">Teacher Dashboard</p>
+              </div>
+            </div>
+            <UserButton afterSignOutUrl="/" />
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <div className={`relative z-10 pt-32 pb-16 transition-opacity duration-700 ${
+        isLoaded ? 'opacity-100' : 'opacity-0'
+      }`}>
+        <div className="mx-auto max-w-7xl px-6">
+          {/* Welcome Section */}
+          <div className="mb-8">
+            <h2 className="text-4xl font-light text-white mb-2">
+              Welcome, {teacherProfile.name}
+            </h2>
+            <p className="text-white/70">
+              Upload reports and generate codes for your students
+            </p>
+          </div>
+
+          {/* Upload Report Button */}
+          {!showUploadForm && (
+            <div className="mb-8">
+              <MagneticButton
+                onClick={() => setShowUploadForm(true)}
+                variant="primary"
+                size="lg"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Upload New Report
+              </MagneticButton>
+            </div>
+          )}
+
+          {/* Upload Report Form */}
+          {showUploadForm && (
+            <Card className="mb-8 border-2 border-border/30 bg-card/80 backdrop-blur-2xl">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-white">Upload Student Report</CardTitle>
+                    <CardDescription className="text-white/70">
+                      Upload a report and generate a unique code for the student
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setShowUploadForm(false);
+                      setNewReport({ studentName: '', grade: '', gradeLevel: '>= 6th Grade' });
+                      setSelectedFile(null);
+                    }}
+                    className="text-white/70 hover:text-white"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="studentName" className="text-white/90">
+                      Student Name *
+                    </Label>
+                    <Input
+                      id="studentName"
+                      placeholder="Enter student name"
+                      value={newReport.studentName || ''}
+                      onChange={(e) => setNewReport({ ...newReport, studentName: e.target.value })}
+                      className="bg-background/30 border-border/40 text-white placeholder:text-white/50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="grade" className="text-white/90">
+                      Grade *
+                    </Label>
+                    <Input
+                      id="grade"
+                      placeholder="e.g., 5th Grade, 6th Grade"
+                      value={newReport.grade || ''}
+                      onChange={(e) => setNewReport({ ...newReport, grade: e.target.value })}
+                      className="bg-background/30 border-border/40 text-white placeholder:text-white/50"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gradeLevel" className="text-white/90">
+                    Grade Level *
+                  </Label>
+                  <div className="flex gap-3">
+                    <Button
+                      type="button"
+                      variant={newReport.gradeLevel === '< 6th Grade' ? 'default' : 'outline'}
+                      onClick={() => setNewReport({ ...newReport, gradeLevel: '< 6th Grade' })}
+                      className={newReport.gradeLevel === '< 6th Grade' ? 'bg-primary text-white' : 'text-white/70 border-border/40'}
+                    >
+                      Under 6th Grade
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={newReport.gradeLevel === '>= 6th Grade' ? 'default' : 'outline'}
+                      onClick={() => setNewReport({ ...newReport, gradeLevel: '>= 6th Grade' })}
+                      className={newReport.gradeLevel === '>= 6th Grade' ? 'bg-primary text-white' : 'text-white/70 border-border/40'}
+                    >
+                      6th Grade and Above
+                    </Button>
+                  </div>
+                  <p className="text-xs text-white/60">
+                    This determines the type of assessment and analysis method
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="file" className="text-white/90">
+                    Upload Report File (Optional)
+                  </Label>
+                  <div className="flex items-center gap-3">
+                    <Input
+                      id="file"
+                      type="file"
+                      accept=".pdf,.doc,.docx,.txt"
+                      onChange={handleFileSelect}
+                      className="bg-background/30 border-border/40 text-white file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary/20 file:text-primary hover:file:bg-primary/30"
+                    />
+                    {selectedFile && (
+                      <Badge className="bg-primary/20 text-primary border-primary/30">
+                        {selectedFile.name}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-white/60">
+                    Upload exam results or assessment data (PDF, DOC, DOCX, TXT)
+                  </p>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <MagneticButton
+                    onClick={handleUploadReport}
+                    variant="primary"
+                    disabled={!newReport.studentName?.trim() || !newReport.grade?.trim()}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload & Generate Code
+                  </MagneticButton>
+                  <MagneticButton
+                    onClick={() => {
+                      setShowUploadForm(false);
+                      setNewReport({ studentName: '', grade: '', gradeLevel: '>= 6th Grade' });
+                      setSelectedFile(null);
+                    }}
+                    variant="secondary"
+                  >
+                    Cancel
+                  </MagneticButton>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Reports Grid */}
+          {reports.length === 0 ? (
+            <Card className="border-2 border-border/30 bg-card/80 backdrop-blur-2xl">
+              <CardContent className="py-12 text-center">
+                <FileText className="h-16 w-16 text-primary/50 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-2">No Reports Yet</h3>
+                <p className="text-white/70 mb-6">
+                  Upload your first report to generate a code for a student
+                </p>
+                <MagneticButton
+                  onClick={() => setShowUploadForm(true)}
+                  variant="primary"
+                >
+                  <Plus className="h-5 w-5 mr-2" />
+                  Upload Report
+                </MagneticButton>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {reports.map((report) => (
+                <motion.div
+                  key={report.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card className="border-2 border-border/30 bg-card/80 backdrop-blur-2xl hover:border-primary/40 transition-all h-full">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-white mb-1">{report.studentName}</CardTitle>
+                          <CardDescription className="text-white/70">
+                            {report.grade}
+                          </CardDescription>
+                        </div>
+                        <Badge className={`${
+                          report.gradeLevel === '< 6th Grade' 
+                            ? 'bg-accent/20 text-accent border-accent/30' 
+                            : 'bg-primary/20 text-primary border-primary/30'
+                        }`}>
+                          {report.gradeLevel}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Report Code */}
+                      <div className="space-y-2">
+                        <Label className="text-white/70 text-sm">Report Code</Label>
+                        <div className="flex items-center gap-2 p-3 bg-background/30 rounded-lg border border-border/40">
+                          <Hash className="h-5 w-5 text-primary" />
+                          <code className="flex-1 text-lg font-mono font-bold text-white">
+                            {report.reportCode}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(report.reportCode)}
+                            className="text-white/70 hover:text-white"
+                          >
+                            {copiedCode === report.reportCode ? (
+                              <CheckCircle2 className="h-4 w-4 text-primary" />
+                            ) : (
+                              <Copy className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-white/60">
+                          Share this code with the student to access their report
+                        </p>
+                      </div>
+
+                      {/* Status */}
+                      <div className="flex items-center justify-between pt-2 border-t border-border/30">
+                        <span className="text-xs text-white/60">
+                          {report.studentId ? (
+                            <span className="text-primary">Linked to student</span>
+                          ) : (
+                            <span className="text-white/50">Pending student registration</span>
+                          )}
+                        </span>
+                        {report.fileName && (
+                          <Badge variant="outline" className="text-white/70 border-white/20">
+                            <FileText className="h-3 w-3 mr-1" />
+                            {report.fileName}
+                          </Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </main>
+  );
+}

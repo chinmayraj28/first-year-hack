@@ -6,19 +6,28 @@ import { UserButton, useUser } from '@clerk/nextjs';
 import { Shader, ChromaFlow, Swirl } from 'shaders/react';
 import { GrainOverlay } from '@/components/grain-overlay';
 import { Activity } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import PhonologicalGame from '@/components/games/PhonologicalGame';
 import AttentionGame from '@/components/games/AttentionGame';
 import ResultsDashboard from '@/components/ResultsDashboard';
 import LoadingScreen from '@/components/LoadingScreen';
 import OnboardingFlow, { OnboardingData } from '@/components/OnboardingFlow';
-import ProfessionalDashboard from '@/components/ProfessionalDashboard';
+import TeacherDashboard from '@/components/TeacherDashboard';
+import StudentDashboard from '@/components/StudentDashboard';
 import { LandingPage } from '@/components/LandingPage';
 import { GameMetrics, GameResult, DomainResult } from '@/types/game';
-import { evaluateDomain, generateFeedback, saveResults } from '@/lib/scoring';
-import { getParentProfile, saveParentProfile, addChild, getAllChildren } from '@/lib/profile';
-import { ChildProfile } from '@/types/profile';
+import { 
+  evaluateDomain, 
+  generateFeedback, 
+  useGetReportByCode,
+  useLinkReportToStudent
+} from '@/lib/scoring';
+import { 
+  getTeacherProfile, 
+  getStudentProfile,
+  saveTeacherProfile,
+  saveStudentProfile
+} from '@/lib/profile';
+import { UserType, StudentProfile } from '@/types/profile';
 
 type AppState = 'loading' | 'landing' | 'onboarding' | 'dashboard' | 'playing' | 'results';
 type GameState = 'phonological' | 'attention' | 'loading';
@@ -28,65 +37,178 @@ export default function Home() {
   const [appState, setAppState] = useState<AppState>('loading');
   const [gameState, setGameState] = useState<GameState>('phonological');
   const [gameResults, setGameResults] = useState<GameResult[]>([]);
-  const [currentChild, setCurrentChild] = useState<ChildProfile | null>(null);
-  const [children, setChildren] = useState<ChildProfile[]>([]);
+  const [userType, setUserType] = useState<UserType | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [pendingReportCode, setPendingReportCode] = useState<string | null>(null);
+  const [pendingOnboardingData, setPendingOnboardingData] = useState<OnboardingData | null>(null);
+  
+  // Convex hooks
+  const linkReport = useLinkReportToStudent();
+  const report = useGetReportByCode(pendingReportCode);
+
+  // Add timeout fallback in case Clerk gets stuck
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (appState === 'loading' && !isLoaded) {
+        console.warn('Clerk loading timeout - proceeding anyway');
+        // If Clerk hasn't loaded after 5 seconds, proceed anyway
+        if (user) {
+          const teacherProfile = getTeacherProfile(user.id);
+          const studentProfile = getStudentProfile(user.id);
+
+          if (teacherProfile) {
+            setUserType('teacher');
+            setAppState(teacherProfile.acceptedPrivacyPolicy ? 'dashboard' : 'onboarding');
+          } else if (studentProfile) {
+            setUserType('student');
+            setAppState(studentProfile.acceptedPrivacyPolicy ? 'dashboard' : 'onboarding');
+          } else {
+            setAppState('onboarding');
+          }
+        } else {
+          setAppState('landing');
+        }
+      }
+    }, 5000);
+
+    return () => clearTimeout(timeout);
+  }, [appState, isLoaded, user]);
 
   useEffect(() => {
+    console.log('[App] State check:', { isLoaded, hasUser: !!user, appState, userType });
+    
     if (isLoaded) {
       if (user) {
-        const profile = getParentProfile(user.id);
-        if (!profile || !profile.acceptedPrivacyPolicy) {
-          setAppState('onboarding');
+        // Check for existing profiles
+        const teacherProfile = getTeacherProfile(user.id);
+        const studentProfile = getStudentProfile(user.id);
+
+        console.log('[App] Profiles:', { hasTeacher: !!teacherProfile, hasStudent: !!studentProfile });
+
+        if (teacherProfile) {
+          setUserType('teacher');
+          if (!teacherProfile.acceptedPrivacyPolicy) {
+            setAppState('onboarding');
+          } else {
+            setAppState('dashboard');
+          }
+        } else if (studentProfile) {
+          setUserType('student');
+          if (!studentProfile.acceptedPrivacyPolicy) {
+            setAppState('onboarding');
+          } else {
+            setAppState('dashboard');
+          }
         } else {
-          const userChildren = getAllChildren(user.id);
-          setChildren(userChildren);
-          setAppState('dashboard');
+          // No profile found, start onboarding
+          setAppState('onboarding');
         }
       } else {
         setAppState('landing');
       }
     }
-  }, [isLoaded, user]);
+  }, [isLoaded, user, refreshKey]);
 
   const handleOnboardingComplete = (data: OnboardingData) => {
     if (!user) return;
 
-    // Save parent profile with agreements
-    saveParentProfile({
-      userId: user.id,
-      acceptedPrivacyPolicy: data.acceptedPrivacy,
-      acceptedTerms: data.acceptedTerms,
-      acceptedDisclaimer: data.acceptedDisclaimer,
-      children: [],
-      createdAt: Date.now(),
-    });
-
-    // Add the child
-    const child = addChild(user.id, {
-      name: data.childName,
-      age: data.childAge,
-      grade: data.childGrade,
-      concerns: data.concerns,
-      notes: data.notes || '',
-    });
-
-    setCurrentChild(child);
-    setChildren([child]);
-    setAppState('dashboard');
-  };
-
-  const handleSelectChild = (childId: string) => {
-    const child = children.find((c) => c.id === childId);
-    if (child) {
-      setCurrentChild(child);
-      setGameResults([]);
-      setGameState('phonological');
-      setAppState('playing');
+    if (data.userType === 'teacher') {
+      // Save teacher profile
+      const teacherProfile = {
+        userId: user.id,
+        userType: 'teacher' as UserType,
+        name: data.teacherName || '',
+        acceptedPrivacyPolicy: data.acceptedPrivacy,
+        acceptedTerms: data.acceptedTerms,
+        acceptedDisclaimer: data.acceptedDisclaimer,
+        classrooms: [],
+        createdAt: Date.now(),
+      };
+      saveTeacherProfile(teacherProfile);
+      setUserType('teacher');
+      setAppState('dashboard');
+    } else if (data.userType === 'student') {
+      // Validate report code
+      const reportCode = (data.reportCode || '').toUpperCase().trim();
+      if (!reportCode) {
+        alert('Please enter a report code.');
+        return;
+      }
+      
+      // Store onboarding data and set pending report code to trigger Convex query
+      setPendingOnboardingData(data);
+      setPendingReportCode(reportCode);
     }
   };
 
-  const handleAddChild = () => {
-    setAppState('onboarding');
+  // Handle report code validation when report is loaded
+  useEffect(() => {
+    if (!pendingReportCode || !user || !pendingOnboardingData || appState !== 'onboarding') return;
+    
+    const processStudentOnboarding = async () => {
+      if (!report) {
+        // Report not found - check if query is still loading
+        if (report === undefined) return; // Still loading
+        
+        // Report not found
+        alert(`Invalid report code "${pendingReportCode}". Please check with your teacher.`);
+        setPendingReportCode(null);
+        setPendingOnboardingData(null);
+        return;
+      }
+
+      // Note: Multiple reports can share the same code
+      // Students can view all reports with their code, so we don't check if code is already used
+
+      // Use student name from report (teacher uploaded it) or fallback to entered name
+      const studentName = report.studentName || pendingOnboardingData.studentName || '';
+
+      // Create student profile - get student info from the report
+      const studentProfile: StudentProfile = {
+        id: `student-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        userId: user.id,
+        name: studentName,
+        age: 0, // Age not stored in report currently
+        grade: report.grade || '', // Get from report
+        school: undefined, // School not stored in report currently
+        reportCode: pendingReportCode, // Store the report code with the student profile
+        createdAt: Date.now(),
+      };
+
+      // Link the initial report to student (optional - for tracking)
+      try {
+        await linkReport({
+          reportCode: pendingReportCode,
+          studentId: studentProfile.id,
+        });
+      } catch (error: any) {
+        // If linking fails, continue anyway - student can still view reports by code
+        console.warn('Failed to link report:', error.message);
+      }
+
+      // Save student user profile
+      const studentUserProfile = {
+        userId: user.id,
+        userType: 'student' as UserType,
+        acceptedPrivacyPolicy: pendingOnboardingData.acceptedPrivacy,
+        acceptedTerms: pendingOnboardingData.acceptedTerms,
+        acceptedDisclaimer: pendingOnboardingData.acceptedDisclaimer,
+        studentProfile,
+        createdAt: Date.now(),
+      };
+      saveStudentProfile(studentUserProfile);
+      setUserType('student');
+      setAppState('dashboard');
+      setPendingReportCode(null);
+      setPendingOnboardingData(null);
+    };
+
+    processStudentOnboarding();
+  }, [report, pendingReportCode, pendingOnboardingData, user, appState, linkReport]);
+
+
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
   };
 
   const handleGameComplete = (gameType: string, metrics: GameMetrics) => {
@@ -134,15 +256,8 @@ export default function Home() {
       };
     });
 
-    // Save to localStorage with child ID
-    saveResults({
-      id: Date.now().toString(),
-      timestamp: Date.now(),
-      childId: currentChild?.id,
-      childName: currentChild?.name,
-      games: gameResults,
-      domainResults,
-    });
+    // Note: Game results are processed and displayed immediately
+    // If you need to persist game results, use Convex mutations
 
     setAppState('results');
   };
@@ -206,16 +321,31 @@ export default function Home() {
     return <OnboardingFlow onComplete={handleOnboardingComplete} userId={user.id} />;
   }
 
-  // Show dashboard
+  // Show dashboard based on user type
   if (appState === 'dashboard' && user) {
-    return (
-      <ProfessionalDashboard
-        userId={user.id}
-        children={children}
-        onSelectChild={handleSelectChild}
-        onAddChild={handleAddChild}
-      />
-    );
+    if (userType === 'teacher') {
+      const teacherProfile = getTeacherProfile(user.id);
+      if (teacherProfile) {
+        return (
+          <TeacherDashboard
+            userId={user.id}
+            teacherProfile={teacherProfile}
+            onRefresh={handleRefresh}
+          />
+        );
+      }
+    } else if (userType === 'student') {
+      const studentProfile = getStudentProfile(user.id);
+      if (studentProfile) {
+        return (
+          <StudentDashboard
+            userId={user.id}
+            studentProfile={studentProfile}
+            onRefresh={handleRefresh}
+          />
+        );
+      }
+    }
   }
 
   // Show games
@@ -274,7 +404,6 @@ export default function Home() {
         <ResultsDashboard 
           results={domainResults} 
           onPlayAgain={handlePlayAgain}
-          childName={currentChild?.name}
         />
       </>
     );

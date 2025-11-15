@@ -3,30 +3,23 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shader, ChromaFlow, Swirl } from 'shaders/react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { MagneticButton } from '@/components/magnetic-button';
 import { GrainOverlay } from '@/components/grain-overlay';
+import { UserType } from '@/types/profile';
 import { 
   Shield, 
   FileText, 
   AlertTriangle, 
-  User, 
-  Calendar, 
-  Brain,
-  BookOpen,
-  Target,
-  Calculator,
-  PenTool,
-  Zap,
-  Hand,
+  Users,
+  GraduationCap,
+  School,
+  Hash,
+  Copy,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  Sparkles
+  UserCheck
 } from 'lucide-react';
 
 interface OnboardingFlowProps {
@@ -35,38 +28,42 @@ interface OnboardingFlowProps {
 }
 
 export interface OnboardingData {
+  userType: UserType;
   acceptedPrivacy: boolean;
   acceptedTerms: boolean;
   acceptedDisclaimer: boolean;
-  childName: string;
-  childAge: number;
-  childGrade: string;
-  concerns: string[];
-  notes: string;
+  // Teacher fields
+  teacherName?: string;
+  // Student fields
+  studentName?: string;
+  reportCode?: string;
 }
-
-const CONCERNS_OPTIONS = [
-  { id: 'reading', label: 'Reading Difficulty', description: 'Trouble with letters, sounds, or decoding', icon: BookOpen },
-  { id: 'attention', label: 'Attention Issues', description: 'Difficulty focusing or staying on task', icon: Target },
-  { id: 'math', label: 'Math Struggles', description: 'Challenges with numbers or calculations', icon: Calculator },
-  { id: 'writing', label: 'Writing Challenges', description: 'Difficulty with handwriting or spelling', icon: PenTool },
-  { id: 'memory', label: 'Memory Concerns', description: 'Trouble remembering instructions or sequences', icon: Brain },
-  { id: 'motor', label: 'Motor Skills', description: 'Coordination or fine motor difficulties', icon: Hand },
-  { id: 'none', label: 'No Specific Concerns', description: 'General screening for peace of mind', icon: CheckCircle2 },
-];
 
 export default function OnboardingFlow({ onComplete, userId }: OnboardingFlowProps) {
   const [step, setStep] = useState(1);
-  const [data, setData] = useState<Partial<OnboardingData>>({
-    concerns: [],
-  });
+  const [data, setData] = useState<Partial<OnboardingData>>({});
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const totalSteps = 6;
+  // Calculate total steps based on user type
+  const getTotalSteps = () => {
+    if (!data.userType) return 4; // Privacy, Terms, Disclaimer, User Type
+    if (data.userType === 'teacher') return 5; // + Teacher Name
+    if (data.userType === 'student') return 5; // + Name, Report Code
+    return 4;
+  };
+
+  const totalSteps = getTotalSteps();
 
   useEffect(() => {
     setTimeout(() => setIsLoaded(true), 300);
   }, []);
+
+  useEffect(() => {
+    // Reset step when user type changes
+    if (data.userType && step === 4) {
+      setStep(4); // Stay on step 4 (user type selection)
+    }
+  }, [data.userType]);
 
   const handleNext = () => {
     if (step < totalSteps) {
@@ -80,15 +77,6 @@ export default function OnboardingFlow({ onComplete, userId }: OnboardingFlowPro
     if (step > 1) setStep(step - 1);
   };
 
-  const toggleConcern = (concernId: string) => {
-    const concerns = data.concerns || [];
-    if (concerns.includes(concernId)) {
-      setData({ ...data, concerns: concerns.filter((c) => c !== concernId) });
-    } else {
-      setData({ ...data, concerns: [...concerns, concernId] });
-    }
-  };
-
   const canProceed = () => {
     switch (step) {
       case 1:
@@ -98,26 +86,40 @@ export default function OnboardingFlow({ onComplete, userId }: OnboardingFlowPro
       case 3:
         return data.acceptedDisclaimer;
       case 4:
-        return data.childName && data.childName.trim().length > 0;
+        return !!data.userType;
       case 5:
-        return data.childAge && data.childAge >= 5 && data.childAge <= 10;
-      case 6:
-        return data.concerns && data.concerns.length > 0;
+        if (data.userType === 'teacher') {
+          return data.teacherName && data.teacherName.trim().length > 0;
+        }
+        if (data.userType === 'student') {
+          // Student: Name and Report Code
+          if (!data.studentName || data.studentName.trim().length === 0) return false;
+          if (!data.reportCode || data.reportCode.trim().length === 0) return false;
+          return true;
+        }
+        return false;
       default:
         return true;
     }
   };
 
   const getStepIcon = () => {
-    switch (step) {
-      case 1: return Shield;
-      case 2: return FileText;
-      case 3: return AlertTriangle;
-      case 4: return User;
-      case 5: return Calendar;
-      case 6: return Brain;
-      default: return Shield;
+    if (step <= 3) {
+      switch (step) {
+        case 1: return Shield;
+        case 2: return FileText;
+        case 3: return AlertTriangle;
+        default: return Shield;
+      }
     }
+    if (step === 4) return UserCheck;
+    if (data.userType === 'teacher') return Users;
+    if (data.userType === 'student') return GraduationCap;
+    return User;
+  };
+
+  const generateClassroomCode = () => {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
   };
 
   const StepIcon = getStepIcon();
@@ -126,7 +128,7 @@ export default function OnboardingFlow({ onComplete, userId }: OnboardingFlowPro
     <div className="relative min-h-screen bg-background flex items-center justify-center overflow-hidden p-4 md:p-8">
       <GrainOverlay />
       
-      {/* WebGL Background matching login page */}
+      {/* WebGL Background */}
       <div
         className={`fixed inset-0 z-0 transition-opacity duration-700 ${
           isLoaded ? 'opacity-100' : 'opacity-0'
@@ -206,17 +208,17 @@ export default function OnboardingFlow({ onComplete, userId }: OnboardingFlowPro
                       {step === 1 && 'Privacy Policy'}
                       {step === 2 && 'Terms of Use'}
                       {step === 3 && 'Important Disclaimer'}
-                      {step === 4 && "Child's Information"}
-                      {step === 5 && 'Age & Grade'}
-                      {step === 6 && 'Areas of Concern'}
+                      {step === 4 && 'Select Your Role'}
+                      {step === 5 && data.userType === 'teacher' && 'Teacher Information'}
+                      {step === 5 && data.userType === 'student' && 'Enter Your Details'}
                     </CardTitle>
                     <CardDescription className="text-white/70">
                       {step === 1 && 'Understanding how we protect your data'}
                       {step === 2 && 'Using SproutSense responsibly'}
                       {step === 3 && 'Understanding the limits of this tool'}
-                      {step === 4 && "Let's set up a profile"}
-                      {step === 5 && 'Help us personalize the experience'}
-                      {step === 6 && 'What would you like to observe?'}
+                      {step === 4 && 'Choose how you will use SproutSense'}
+                      {step === 5 && data.userType === 'teacher' && 'Tell us about yourself'}
+                      {step === 5 && data.userType === 'student' && 'Enter your name and report code'}
                     </CardDescription>
                   </div>
                 </div>
@@ -234,7 +236,7 @@ export default function OnboardingFlow({ onComplete, userId }: OnboardingFlowPro
                       <ul className="space-y-2.5 text-sm text-white/90">
                         <li className="flex items-start gap-2">
                           <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                          <span>All data is stored locally on your device</span>
+                          <span>All data is stored securely and privately</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
@@ -246,15 +248,11 @@ export default function OnboardingFlow({ onComplete, userId }: OnboardingFlowPro
                         </li>
                         <li className="flex items-start gap-2">
                           <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                          <span>Your child's information stays private</span>
+                          <span>Student information stays private</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
                           <span>You can delete all data anytime</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                          <span>Authentication is only for your account access</span>
                         </li>
                       </ul>
                     </div>
@@ -266,8 +264,7 @@ export default function OnboardingFlow({ onComplete, userId }: OnboardingFlowPro
                         className="mt-1 w-5 h-5 rounded border-border/40 bg-background/30 accent-primary"
                       />
                       <span className="text-sm text-white/90 group-hover:text-white transition-colors">
-                        I understand and accept the privacy policy. I consent to storing my child's assessment data
-                        locally on this device.
+                        I understand and accept the privacy policy.
                       </span>
                     </label>
                   </div>
@@ -288,15 +285,7 @@ export default function OnboardingFlow({ onComplete, userId }: OnboardingFlowPro
                         </li>
                         <li className="flex items-start gap-2">
                           <span className="text-accent mt-0.5">•</span>
-                          <span>Free for personal, non-commercial use</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-accent mt-0.5">•</span>
-                          <span>Must be used by parents/guardians for their own children</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <span className="text-accent mt-0.5">•</span>
-                          <span>Children should use with parental supervision</span>
+                          <span>Free for educational use</span>
                         </li>
                         <li className="flex items-start gap-2">
                           <span className="text-accent mt-0.5">•</span>
@@ -335,21 +324,12 @@ export default function OnboardingFlow({ onComplete, userId }: OnboardingFlowPro
                           This is NOT a medical or diagnostic tool.
                         </p>
                         <p>
-                          SproutSense is a screening tool that highlights play patterns which MAY indicate
+                          SproutSense is a screening tool that highlights patterns which MAY indicate
                           learning differences. It cannot diagnose conditions like dyslexia, ADHD, dyscalculia,
                           or any other learning or developmental disorder.
                         </p>
                         <p className="text-white font-medium">
-                          If you have concerns:
-                        </p>
-                        <ul className="space-y-2 ml-2">
-                          <li>Consult with an educational psychologist</li>
-                          <li>Speak to your pediatrician</li>
-                          <li>Contact your child's school for assessment</li>
-                          <li>Seek professional evaluation</li>
-                        </ul>
-                        <p className="font-medium">
-                          Use this tool as a conversation starter, not a diagnosis.
+                          If you have concerns, consult with educational professionals.
                         </p>
                       </div>
                     </div>
@@ -367,99 +347,135 @@ export default function OnboardingFlow({ onComplete, userId }: OnboardingFlowPro
                   </div>
                 )}
 
-                {/* Step 4: Child's Name */}
+                {/* Step 4: User Type Selection */}
                 {step === 4 && (
                   <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="childName" className="text-lg text-white/90">
-                        What is your child's first name?
-                      </Label>
-                      <Input
-                        id="childName"
-                        placeholder="Enter first name"
-                        value={data.childName || ''}
-                        onChange={(e) => setData({ ...data, childName: e.target.value })}
-                        className="text-lg h-12 bg-background/30 border-border/40 text-white placeholder:text-white/50"
-                        autoFocus
-                      />
-                      <p className="text-sm text-white/70">
-                        This helps personalize the experience and organize results.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 5: Age & Grade */}
-                {step === 5 && (
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="childAge" className="text-lg text-white/90">
-                        How old is {data.childName}?
-                      </Label>
-                      <Input
-                        id="childAge"
-                        type="number"
-                        min="5"
-                        max="10"
-                        placeholder="Age (5-10)"
-                        value={data.childAge || ''}
-                        onChange={(e) => setData({ ...data, childAge: parseInt(e.target.value) })}
-                        className="text-lg h-12 bg-background/30 border-border/40 text-white placeholder:text-white/50"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="childGrade" className="text-lg text-white/90">
-                        What grade? (Optional)
-                      </Label>
-                      <Input
-                        id="childGrade"
-                        placeholder="e.g., Kindergarten, 1st Grade, 2nd Grade"
-                        value={data.childGrade || ''}
-                        onChange={(e) => setData({ ...data, childGrade: e.target.value })}
-                        className="text-lg h-12 bg-background/30 border-border/40 text-white placeholder:text-white/50"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 6: Concerns */}
-                {step === 6 && (
-                  <div className="space-y-4">
-                    <p className="text-white/70">
-                      Select any areas you'd like to observe. This helps us focus on what matters to you.
+                    <p className="text-white/70 text-center mb-6">
+                      How will you be using SproutSense?
                     </p>
-                    <div className="grid gap-3">
-                      {CONCERNS_OPTIONS.map((concern) => (
-                        <motion.div
-                          key={concern.id}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
+                    <div className="grid gap-4">
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <Card
+                          className={`cursor-pointer transition-all border-2 backdrop-blur-sm ${
+                            data.userType === 'teacher'
+                              ? 'border-primary/50 bg-primary/20'
+                              : 'border-border/30 bg-background/20 hover:border-primary/40 hover:bg-background/30'
+                          }`}
+                          onClick={() => setData({ ...data, userType: 'teacher' })}
                         >
-                          <Card
-                            className={`cursor-pointer transition-all border-2 backdrop-blur-sm ${
-                              data.concerns?.includes(concern.id)
-                                ? 'border-primary/50 bg-primary/20'
-                                : 'border-border/30 bg-background/20 hover:border-primary/40 hover:bg-background/30'
-                            }`}
-                            onClick={() => toggleConcern(concern.id)}
-                          >
-                            <CardContent className="p-4">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <div className="font-semibold text-white">{concern.label}</div>
-                                  <div className="text-sm text-white/70">{concern.description}</div>
-                                </div>
-                                {data.concerns?.includes(concern.id) && (
-                                  <Badge className="bg-primary text-white">
-                                    <CheckCircle2 className="h-3 w-3" />
-                                  </Badge>
-                                )}
+                          <CardContent className="p-6">
+                            <div className="flex items-center gap-4">
+                              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20">
+                                <Users className="h-6 w-6 text-primary" />
                               </div>
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      ))}
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-white mb-1">Teacher</h3>
+                                <p className="text-sm text-white/70">
+                                  Upload reports, generate codes for students, and manage assessment data
+                                </p>
+                              </div>
+                              {data.userType === 'teacher' && (
+                                <CheckCircle2 className="h-5 w-5 text-primary" />
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+
+                      <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <Card
+                          className={`cursor-pointer transition-all border-2 backdrop-blur-sm ${
+                            data.userType === 'student'
+                              ? 'border-primary/50 bg-primary/20'
+                              : 'border-border/30 bg-background/20 hover:border-primary/40 hover:bg-background/30'
+                          }`}
+                          onClick={() => setData({ ...data, userType: 'student' })}
+                        >
+                          <CardContent className="p-6">
+                            <div className="flex items-center gap-4">
+                              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/20">
+                                <GraduationCap className="h-6 w-6 text-accent" />
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-white mb-1">Student</h3>
+                                <p className="text-sm text-white/70">
+                                  Enter your report code from your teacher to view your assessment reports
+                                </p>
+                              </div>
+                              {data.userType === 'student' && (
+                                <CheckCircle2 className="h-5 w-5 text-primary" />
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
                     </div>
+                  </div>
+                )}
+
+                {/* Step 5: Teacher Name or Student Name + Report Code */}
+                {step === 5 && (
+                  <div className="space-y-4">
+                    {data.userType === 'teacher' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="teacherName" className="text-lg text-white/90">
+                          What is your name?
+                        </Label>
+                        <Input
+                          id="teacherName"
+                          placeholder="Enter your full name"
+                          value={data.teacherName || ''}
+                          onChange={(e) => setData({ ...data, teacherName: e.target.value })}
+                          className="text-lg h-12 bg-background/30 border-border/40 text-white placeholder:text-white/50"
+                          autoFocus
+                        />
+                      </div>
+                    )}
+                    {data.userType === 'student' && (
+                      <div className="space-y-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="studentName" className="text-lg text-white/90">
+                            What is your name?
+                          </Label>
+                          <Input
+                            id="studentName"
+                            placeholder="Enter your full name"
+                            value={data.studentName || ''}
+                            onChange={(e) => setData({ ...data, studentName: e.target.value })}
+                            className="text-lg h-12 bg-background/30 border-border/40 text-white placeholder:text-white/50"
+                            autoFocus
+                          />
+                        </div>
+                        <div className="bg-primary/10 border-2 border-primary/30 rounded-xl p-5 backdrop-blur-sm">
+                          <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
+                            <Hash className="h-5 w-5 text-primary" />
+                            Report Code
+                          </h4>
+                          <p className="text-sm text-white/90 mb-4">
+                            Your teacher should have shared a unique report code with you. Enter it below to access your assessment report.
+                          </p>
+                          <div className="space-y-2">
+                            <Label htmlFor="reportCode" className="text-sm text-white/90">
+                              Enter your report code
+                            </Label>
+                            <Input
+                              id="reportCode"
+                              placeholder="Enter 8-character code"
+                              value={data.reportCode || ''}
+                              onChange={(e) => setData({ ...data, reportCode: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
+                              className="text-lg h-12 bg-background/30 border-border/40 text-white placeholder:text-white/50 font-mono"
+                              maxLength={8}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -477,6 +493,7 @@ export default function OnboardingFlow({ onComplete, userId }: OnboardingFlowPro
                   <MagneticButton
                     onClick={handleNext}
                     variant="primary"
+                    disabled={!canProceed()}
                     className={`flex-1 ${!canProceed() ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     {step === totalSteps ? 'Complete Setup' : 'Continue →'}

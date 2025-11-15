@@ -7,7 +7,7 @@ import { Shader, ChromaFlow, Swirl } from 'shaders/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ChildProfile } from '@/types/profile';
-import { getResultsHistory } from '@/lib/scoring';
+// Note: This component is not currently used. If needed, update to use Convex hooks.
 import { GrainOverlay } from '@/components/grain-overlay';
 import { MagneticButton } from '@/components/magnetic-button';
 import { 
@@ -39,8 +39,9 @@ export default function ProfessionalDashboard({
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const history = getResultsHistory();
-    setTestHistory(history);
+    // TODO: Update to use Convex hooks if this component is needed
+    // const reports = useGetAllReports();
+    setTestHistory([]);
     setTimeout(() => setIsLoaded(true), 300);
   }, []);
 

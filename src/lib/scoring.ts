@@ -1,4 +1,6 @@
 import { GameMetrics, SignalLevel } from '@/types/game';
+import { useMutation, useQuery } from 'convex/react';
+import { api } from 'convex/_generated/api';
 
 export function evaluateDomain({
   accuracy,
@@ -61,14 +63,55 @@ export function generateFeedback(
   return feedback.join(' ');
 }
 
-export function saveResults(results: any) {
-  const existing = localStorage.getItem('sproutsense-results');
-  const history = existing ? JSON.parse(existing) : [];
-  history.push(results);
-  localStorage.setItem('sproutsense-results', JSON.stringify(history));
+export function generateReportCode(): string {
+  return Math.random().toString(36).substring(2, 10).toUpperCase();
 }
 
-export function getResultsHistory() {
-  const existing = localStorage.getItem('sproutsense-results');
-  return existing ? JSON.parse(existing) : [];
+// Hook-based functions for React components
+export function useSaveReport() {
+  return useMutation(api.functions.saveTestResults);
 }
+
+export function useGetReportByCode(reportCode: string | null) {
+  return useQuery(
+    api.functions.getReportByCode,
+    reportCode ? { reportCode } : 'skip'
+  );
+}
+
+export function useLinkReportToStudent() {
+  return useMutation(api.functions.linkReportToStudent);
+}
+
+export function useGetTeacherReports(teacherId: string | null) {
+  return useQuery(
+    api.functions.getTestResults,
+    teacherId ? { teacherId } : 'skip'
+  );
+}
+
+export function useGetStudentReports(studentId: string | null) {
+  return useQuery(
+    api.functions.getStudentReports,
+    studentId ? { studentId } : 'skip'
+  );
+}
+
+export function useGetReportsByCode(reportCode: string | null) {
+  return useQuery(
+    api.functions.getReportsByCode,
+    reportCode ? { reportCode } : 'skip'
+  );
+}
+
+export function useGenerateUploadUrl() {
+  return useMutation(api.functions.generateUploadUrl);
+}
+
+export function useGetFileUrl(storageId: string | undefined | null) {
+  return useQuery(
+    api.functions.getFileUrl,
+    storageId ? { storageId: storageId as any } : 'skip'
+  );
+}
+
