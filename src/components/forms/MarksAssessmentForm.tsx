@@ -199,11 +199,12 @@ export default function MarksAssessmentForm({
                   type="number"
                   min="0"
                   max={subject.totalMarks}
-                  value={subject.obtainedMarks === 0 ? '' : subject.obtainedMarks}
+                  value={subject.obtainedMarks || ''}
                   onChange={(e) => {
                     const inputValue = e.target.value;
-                    // Allow empty string for clearing
-                    if (inputValue === '') {
+                    // Allow empty string for clearing - don't update state yet
+                    if (inputValue === '' || inputValue === '-') {
+                      // Temporarily allow empty or just minus sign for better UX
                       updateSubject(index, 'obtainedMarks', 0);
                       return;
                     }
@@ -213,14 +214,16 @@ export default function MarksAssessmentForm({
                       return; // Don't update if invalid
                     }
                     // Ensure non-negative and not more than total marks
-                    const clampedValue = Math.max(0, Math.min(numValue, subject.totalMarks));
+                    if (numValue < 0) {
+                      return; // Don't allow negative
+                    }
+                    const clampedValue = Math.min(numValue, subject.totalMarks);
                     updateSubject(index, 'obtainedMarks', clampedValue);
                   }}
-                  onBlur={(e) => {
-                    // On blur, ensure we have a valid number (default to 0 if empty)
-                    const value = e.target.value;
-                    if (value === '' || isNaN(parseFloat(value))) {
-                      updateSubject(index, 'obtainedMarks', 0);
+                  onKeyDown={(e) => {
+                    // Prevent negative sign
+                    if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+') {
+                      e.preventDefault();
                     }
                   }}
                   className="bg-background/30 border-border/40 text-white placeholder:text-white/50"
