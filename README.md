@@ -1,36 +1,114 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🌱 SproutSense - Early Learning Signal Detector
 
-## Getting Started
+**Detect learning friction through play - helping children before frustration becomes struggle.**
+
+SproutSense is a browser-based tool that helps parents and teachers detect early learning friction in children aged 5–10 through short, playful mini-games. The app measures behavior (accuracy, reaction time, retries) instead of grades, to highlight possible early signals of dyslexia, ADHD, dyscalculia, and other learning differences.
+
+## ✨ Features
+
+- 🎮 **Playful Mini-Games** - 2-3 minute games designed by learning specialists
+- 📊 **Smart Insights** - Color-coded signals (green/yellow/red) highlighting areas that may need attention
+- 🔒 **100% Private** - All data stays in your browser, never collected or shared
+- 👥 **For Ages 5-10** - Perfect for parents and teachers to spot early signals
+- 📱 **Works Everywhere** - Fully client-side, works on any device with a browser
+
+## 🎯 Mini-Games
+
+### 🎵 Phonological Processing
+**Letter-sound matching game** that measures:
+- Accuracy in rhyming word identification
+- Reaction time for sound-letter mapping
+- Potential signals of dyslexia
+
+### ⚡ Attention Control
+**Quick tap challenge** that measures:
+- False clicks and impulsivity
+- Variable attention patterns
+- Potential signals of ADHD
+
+## 🚀 Getting Started
 
 First, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🛠️ Tech Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Next.js 15** - React framework with App Router
+- **TypeScript** - Type-safe development
+- **Tailwind CSS** - Utility-first styling with pastel, child-friendly design
+- **Framer Motion** - Smooth animations and transitions
+- **shadcn/ui** - Accessible component library
+- **LocalStorage** - Privacy-safe data persistence
 
-## Learn More
+## 📊 How It Works
 
-To learn more about Next.js, take a look at the following resources:
+### Measurement Heuristics
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Metric | Typical Range | Friction Signal |
+|--------|--------------|-----------------|
+| Accuracy | ≥ 80% | < 80% |
+| Avg Reaction Time | < 2000ms | ≥ 2000ms |
+| False Clicks | ≤ 3 | > 3 |
+| Retries | ≤ 2 | > 2 |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Signal Colors
 
-## Deploy on Vercel
+- 🟢 **Green** - Performance within typical range
+- 🟡 **Yellow** - Watch / mild friction detected
+- 🔴 **Red** - Consistent friction, may warrant assessment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## ⚠️ Important Disclaimer
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**This is not a medical or diagnostic tool.** It highlights play patterns that may warrant professional assessment. If you have concerns, please consult with an educational psychologist or pediatrician for comprehensive evaluation.
+
+## 📁 Project Structure
+
+```
+src/
+├── app/
+│   ├── page.tsx          # Main app with game state management
+│   ├── layout.tsx        # Root layout with metadata
+│   └── globals.css       # Global styles
+├── components/
+│   ├── games/
+│   │   ├── PhonologicalGame.tsx  # Sound-matching game
+│   │   └── AttentionGame.tsx     # Quick tap challenge
+│   ├── ResultsDashboard.tsx      # Results display with insights
+│   ├── LoadingScreen.tsx         # Analysis animation
+│   └── ui/               # shadcn/ui components
+├── lib/
+│   ├── scoring.ts        # Evaluation logic and feedback generation
+│   └── utils.ts          # Utility functions
+└── types/
+    └── game.ts           # TypeScript type definitions
+```
+
+## 🎨 Design Philosophy
+
+- **Child-Friendly**: Pastel colors, rounded corners, bubbly buttons
+- **Playful**: Emoji icons, celebratory animations, friendly language
+- **Safe**: Clear disclaimer, privacy-first approach
+- **Accessible**: Built on Radix UI primitives for keyboard navigation and screen readers
+
+## 🚢 Deployment
+
+Deploy easily on Vercel:
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/chinmayraj28/first-year-hack)
+
+## 📝 License
+
+MIT License - feel free to use this for educational and research purposes.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+---
+
+**Tagline**: "SproutSense turns playful 2-minute games into early signals of learning friction — helping children before frustration becomes struggle."
