@@ -1,0 +1,63 @@
+{
+  "studentName": "Sarah Chen",
+  "age": 5,
+  "grade": "LKG",
+  "teacherName": "Ms. Johnson",
+  "assessmentDate": "2025-11-15",
+  "developmentalAssessment": {
+    "attentionAndImpulseControl": {
+      "questions": [
+        {"id": 1, "text": "The child has difficulty focusing on tasks for more than 5–10 minutes", "score": 4},
+        {"id": 2, "text": "The child often interrupts others or speaks out of turn", "score": 4},
+        {"id": 3, "text": "The child has difficulty waiting for their turn in group activities", "score": 3},
+        {"id": 4, "text": "The child appears restless or fidgets frequently during seated tasks", "score": 4},
+        {"id": 5, "text": "The child is easily distracted by external stimuli (noises, movement, objects)", "score": 4}
+      ]
+    },
+    "languageAndCommunication": {
+      "questions": [
+        {"id": 1, "text": "The child struggles to express their thoughts clearly", "score": 2},
+        {"id": 2, "text": "The child has trouble remembering the names of letters, numbers, or common objects", "score": 3},
+        {"id": 3, "text": "The child mispronounces words frequently or has difficulty forming sentences", "score": 2},
+        {"id": 4, "text": "The child struggles to follow 2–3 step verbal instructions", "score": 3},
+        {"id": 5, "text": "The child has difficulty retelling a story or describing events in order", "score": 3}
+      ]
+    },
+    "cognitiveAndLearningSkills": {
+      "questions": [
+        {"id": 1, "text": "The child has difficulty recognizing letters, numbers, or symbols", "score": 3},
+        {"id": 2, "text": "The child struggles to identify which of two groups has more or fewer items", "score": 2},
+        {"id": 3, "text": "The child often confuses sequences (days of week, counting, or letter order)", "score": 3},
+        {"id": 4, "text": "The child takes longer than peers to solve simple puzzles or pattern tasks", "score": 3},
+        {"id": 5, "text": "The child has difficulty understanding cause-and-effect relationships in simple tasks", "score": 2}
+      ]
+    },
+    "motorSkills": {
+      "questions": [
+        {"id": 1, "text": "The child struggles with tasks requiring fine motor skills (cutting, drawing, holding pencil)", "score": 4},
+        {"id": 2, "text": "The child's handwriting or drawing is noticeably messy compared to peers", "score": 4},
+        {"id": 3, "text": "The child has difficulty copying shapes, letters, or numbers accurately", "score": 4},
+        {"id": 4, "text": "The child has trouble tying shoelaces or manipulating small fasteners", "score": 4},
+        {"id": 5, "text": "The child struggles to complete tasks requiring hand-eye coordination (e.g., stringing beads, placing pegs)", "score": 3},
+        {"id": 6, "text": "The child's handwriting is messy or inconsistent compared to peers", "score": 4},
+        {"id": 7, "text": "The child avoids tasks that require drawing, writing, or manipulating small objects", "score": 3},
+        {"id": 8, "text": "The child copies letters, numbers, or simple shapes inaccurately or slowly", "score": 4}
+      ]
+    },
+    "socialAndEmotionalSkills": {
+      "questions": [
+        {"id": 1, "text": "The child has difficulty making eye contact or interacting socially with peers", "score": 3},
+        {"id": 2, "text": "The child struggles to understand or respond appropriately to others' emotions", "score": 3},
+        {"id": 3, "text": "The child initiates play with other children without prompting", "score": 2},
+        {"id": 4, "text": "The child responds appropriately when another child shares a toy or idea", "score": 3},
+        {"id": 5, "text": "The child struggles to join group activities even when invited", "score": 3},
+        {"id": 6, "text": "The child prefers solitary play most of the time", "score": 4},
+        {"id": 7, "text": "The child maintains friendships or shows interest in peers over time", "score": 2},
+        {"id": 8, "text": "The child follows rules in group settings consistently", "score": 3},
+        {"id": 9, "text": "The child can participate in structured activities without disrupting others", "score": 3},
+        {"id": 10, "text": "The child shifts attention smoothly between different tasks when asked", "score": 2},
+        {"id": 11, "text": "The child can cope with minor criticism without strong negative reactions", "score": 2}
+      ]
+    }
+  }
+}
