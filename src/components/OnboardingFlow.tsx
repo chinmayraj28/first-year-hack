@@ -19,7 +19,8 @@ import {
   Hash,
   Copy,
   CheckCircle2,
-  UserCheck
+  UserCheck,
+  User
 } from 'lucide-react';
 
 interface OnboardingFlowProps {
